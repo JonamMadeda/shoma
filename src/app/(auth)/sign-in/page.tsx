@@ -1,0 +1,73 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+
+export default function SignInPage() {
+  const router = useRouter();
+  const { signIn } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    const err = await signIn(email, password);
+    setSubmitting(false);
+    if (err) {
+      setError(err);
+    } else {
+      router.push('/');
+    }
+  };
+
+  return (
+    <>
+      <h1 className="mb-8 text-center font-serif text-2xl font-semibold text-slate-800">
+        Sign in
+      </h1>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Input
+          id="email"
+          label="Email"
+          type="email"
+          required
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+
+        <Input
+          id="password"
+          label="Password"
+          type="password"
+          required
+          placeholder="Your password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+
+        {error && <p className="text-sm text-red-500">{error}</p>}
+
+        <Button type="submit" loading={submitting} className="w-full">
+          Sign in
+        </Button>
+      </form>
+
+      <p className="mt-8 text-center text-sm text-slate-500">
+        Don&apos;t have an account?{' '}
+        <Link href="/sign-up" className="font-medium text-blue-600 hover:text-blue-500">
+          Sign up
+        </Link>
+      </p>
+    </>
+  );
+}
