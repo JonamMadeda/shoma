@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/components/auth/AuthProvider';
 import { useToast } from '@/hooks/useToast';
 import { Button } from '@/components/ui/Button';
 import { CardSkeleton } from '@/components/ui/Skeleton';
@@ -61,7 +60,6 @@ const groupOrder = ['Today', 'Yesterday', 'This Week', 'Older'];
 
 export default function LibraryPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [pdfs, setPdfs] = useState<PdfListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,9 +78,8 @@ export default function LibraryPage() {
   }, []);
 
   useEffect(() => {
-    if (!authLoading && user) fetchPdfs();
-    else if (!authLoading && !user) setLoading(false);
-  }, [authLoading, user, fetchPdfs]);
+    fetchPdfs();
+  }, [fetchPdfs]);
 
   const handleDelete = useCallback(
     async (id: string) => {

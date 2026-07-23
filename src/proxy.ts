@@ -8,7 +8,7 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const session = request.cookies.get('shoma_session')?.value;
 
-  const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
+  const isProtected = pathname === '/' || protectedPaths.some((p) => pathname.startsWith(p));
   const isAuthPage = authPaths.some((p) => pathname.startsWith(p));
 
   if (isProtected && !session) {
@@ -28,5 +28,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/read/:path*', '/sign-in', '/sign-up', '/upload', '/api/upload', '/api/pdfs'],
+  matcher: ['/', '/read/:path*', '/sign-in', '/sign-up', '/upload', '/api/upload', '/api/pdfs'],
 };
