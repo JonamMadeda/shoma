@@ -17,7 +17,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const all = await db
+    const all = await db()
       .select({ id: pdfs.id, title: pdfs.title, filename: pdfs.filename, fileSize: pdfs.fileSize, createdAt: pdfs.createdAt })
       .from(pdfs)
       .where(eq(pdfs.userId, user.id))

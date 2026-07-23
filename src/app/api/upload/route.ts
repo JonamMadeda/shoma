@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const base64 = buffer.toString('base64');
 
-    const [pdf] = await db
+    const [pdf] = await db()
       .insert(pdfs)
       .values({
         userId: user.id,

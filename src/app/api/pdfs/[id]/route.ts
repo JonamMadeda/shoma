@@ -21,7 +21,7 @@ export async function GET(
     }
 
     const { id } = await params;
-    const [pdf] = await db
+    const [pdf] = await db()
       .select()
       .from(pdfs)
       .where(eq(pdfs.id, id));
@@ -56,7 +56,7 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const [pdf] = await db
+    const [pdf] = await db()
       .select({ userId: pdfs.userId })
       .from(pdfs)
       .where(eq(pdfs.id, id));
@@ -68,7 +68,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    await db.delete(pdfs).where(eq(pdfs.id, id));
+    await db().delete(pdfs).where(eq(pdfs.id, id));
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: 'Failed to delete PDF' }, { status: 500 });
