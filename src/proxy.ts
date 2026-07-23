@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const protectedPaths = ['/read/', '/upload', '/api/upload', '/api/pdfs'];
+const protectedPaths = ['/read/', '/upload', '/api/upload', '/api/pdfs', '/api/folders'];
 const authPaths = ['/sign-in', '/sign-up'];
 
 export function proxy(request: NextRequest) {
