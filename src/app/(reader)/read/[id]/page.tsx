@@ -2,10 +2,12 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Minus, Plus } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, FileText, Image } from 'lucide-react';
 import { ReaderView } from '@/components/reader/ReaderView';
+import { PdfViewer } from '@/components/reader/PdfViewer';
 import type { ContentBlock } from '@/lib/content-formatter';
 import { Button } from '@/components/ui/Button';
+import { cn } from '@/lib/utils';
 
 const MIN_FONT = 14;
 const MAX_FONT = 32;
@@ -15,7 +17,9 @@ export default function ReadPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [blocks, setBlocks] = useState<ContentBlock[]>([]);
+  const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null);
   const [fontSize, setFontSize] = useState(18);
+  const [viewMode, setViewMode] = useState<'text' | 'pdf'>('text');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,9 +32,11 @@ export default function ReadPage() {
         const binary = atob(pdf.content);
         const bytes = new Uint8Array(binary.length);
         for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        setPdfBytes(bytes);
         const { extractPages } = await import('@/lib/pdf-parser');
         const { formatContent } = await import('@/lib/content-formatter');
-        const pages = await extractPages(new File([bytes], pdf.filename, { type: 'application/pdf' }));
+        const file = new File([bytes], pdf.filename, { type: 'application/pdf' });
+        const pages = await extractPages(file);
         setBlocks(formatContent(pages));
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load PDF');
@@ -70,39 +76,75 @@ export default function ReadPage() {
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <header className="sticky top-0 z-40 border-b border-border/80 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-        <div className="mx-auto flex h-12 max-w-3xl items-center justify-between px-4">
+        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
           <button
             onClick={handleBack}
-            className="flex items-center gap-1.5 text-sm font-medium text-muted-medium transition-colors hover:text-foreground"
+            className="flex items-center gap-1.5 py-2 text-sm font-medium text-muted-medium transition-colors hover:text-foreground active:scale-95"
           >
             <ArrowLeft className="size-4" strokeWidth={1.5} />
             Library
           </button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 rounded-lg border border-border bg-white p-0.5">
             <button
-              onClick={() => setFontSize(Math.max(MIN_FONT, fontSize - STEP))}
-              disabled={fontSize <= MIN_FONT}
-              className="flex size-7 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-muted hover:text-muted-medium disabled:opacity-30 disabled:cursor-not-allowed"
-              aria-label="Decrease font size"
+              onClick={() => setViewMode('text')}
+              className={cn(
+                'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-150',
+                viewMode === 'text'
+                  ? 'bg-accent text-white shadow-sm'
+                  : 'text-muted hover:text-foreground'
+              )}
             >
-              <Minus className="size-3.5" strokeWidth={1.5} />
+              <FileText className="size-3.5" strokeWidth={1.5} />
+              Text
             </button>
-            <span className="w-8 text-center text-xs font-medium text-muted-medium tabular-nums">
-              {fontSize}
-            </span>
             <button
-              onClick={() => setFontSize(Math.min(MAX_FONT, fontSize + STEP))}
-              disabled={fontSize >= MAX_FONT}
-              className="flex size-7 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-muted hover:text-muted-medium disabled:opacity-30 disabled:cursor-not-allowed"
-              aria-label="Increase font size"
+              onClick={() => setViewMode('pdf')}
+              className={cn(
+                'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-150',
+                viewMode === 'pdf'
+                  ? 'bg-accent text-white shadow-sm'
+                  : 'text-muted hover:text-foreground'
+              )}
             >
-              <Plus className="size-3.5" strokeWidth={1.5} />
+              <Image className="size-3.5" strokeWidth={1.5} />
+              PDF
             </button>
           </div>
+
+          {viewMode === 'text' ? (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setFontSize(Math.max(MIN_FONT, fontSize - STEP))}
+                disabled={fontSize <= MIN_FONT}
+                className="flex size-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-muted hover:text-muted-medium active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                aria-label="Decrease font size"
+              >
+                <Minus className="size-4" strokeWidth={1.5} />
+              </button>
+              <span className="w-10 text-center text-sm font-medium text-muted-medium tabular-nums">
+                {fontSize}
+              </span>
+              <button
+                onClick={() => setFontSize(Math.min(MAX_FONT, fontSize + STEP))}
+                disabled={fontSize >= MAX_FONT}
+                className="flex size-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-muted hover:text-muted-medium active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                aria-label="Increase font size"
+              >
+                <Plus className="size-4" strokeWidth={1.5} />
+              </button>
+            </div>
+          ) : (
+            <div className="w-[76px]" />
+          )}
         </div>
       </header>
-      <ReaderView blocks={blocks} fontSize={fontSize} />
+
+      {viewMode === 'text' ? (
+        <ReaderView blocks={blocks} fontSize={fontSize} />
+      ) : pdfBytes ? (
+        <PdfViewer data={pdfBytes} />
+      ) : null}
     </div>
   );
 }

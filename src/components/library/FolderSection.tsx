@@ -42,11 +42,11 @@ export function FolderSection({
   onDeletePdf,
 }: FolderSectionProps) {
   return (
-    <div className="group overflow-hidden rounded-xl border border-border bg-white transition-all duration-200 hover:shadow-sm">
-      <div className="flex items-center px-4 py-3">
+    <div className="group overflow-hidden rounded-xl border border-border bg-white transition-all duration-200">
+      <div className="flex items-center px-3 py-2.5 sm:px-4 sm:py-3">
         <button
           onClick={() => onToggle(folder.id)}
-          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+          className="flex min-w-0 flex-1 items-center gap-2.5 text-left sm:gap-3"
         >
           <div className={cn(
             'flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200',
@@ -56,7 +56,7 @@ export function FolderSection({
           </div>
           <div className="min-w-0 flex-1">
             <span className="text-sm font-medium text-foreground">{folder.name}</span>
-            <span className="ml-2 text-xs tabular-nums text-muted">
+            <span className="ml-1.5 text-xs tabular-nums text-muted sm:ml-2">
               {pdfs.length} PDF{pdfs.length !== 1 ? 's' : ''}
             </span>
           </div>
@@ -71,10 +71,10 @@ export function FolderSection({
         {!selectMode && (
           <button
             onClick={() => onDelete(folder.id)}
-            className="ml-2 flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-faint opacity-0 transition-all duration-150 hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
+            className="ml-1 flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-faint opacity-60 transition-all duration-150 hover:bg-red-50 hover:text-red-500 hover:opacity-100 active:scale-95 sm:ml-2"
             aria-label={`Delete folder ${folder.name}`}
           >
-            <Trash2 className="size-3.5" strokeWidth={1.5} />
+            <Trash2 className="size-4" strokeWidth={1.5} />
           </button>
         )}
       </div>
@@ -82,7 +82,7 @@ export function FolderSection({
       {expanded && (
         <div className="border-t border-border-subtle">
           {pdfs.length > 0 ? (
-            <div className="divide-y divide-border-subtle px-4">
+            <div className="divide-y divide-border-subtle px-3 sm:px-4">
               {pdfs.map((pdf) => (
                 <PdfCard
                   key={pdf.id}
@@ -100,7 +100,7 @@ export function FolderSection({
               ))}
             </div>
           ) : (
-            !search && <div className="px-4 py-3"><EmptyState type="empty-folder" folderName={folder.name} /></div>
+            !search && <div className="px-3 py-2 sm:px-4 sm:py-3"><EmptyState type="empty-folder" folderName={folder.name} /></div>
           )}
         </div>
       )}

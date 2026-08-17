@@ -53,7 +53,7 @@ export default function UploadPage() {
         <>
           <UploadZone onFileSelect={handleFileSelect} isLoading={uploading} />
 
-          <div className="mt-8 grid grid-cols-3 gap-4">
+          <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
             <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-white p-4 text-center">
               <div className="flex size-9 items-center justify-center rounded-lg bg-accent-light">
                 <FileText className="size-4 text-accent" strokeWidth={1.5} />

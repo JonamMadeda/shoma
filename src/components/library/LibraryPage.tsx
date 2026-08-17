@@ -161,7 +161,7 @@ export default function LibraryPage() {
 
   return (
     <>
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
+      <div className="mx-auto max-w-5xl px-3 py-6 sm:px-6 sm:py-10">
         <LibraryHeader
           pdfCount={pdfs.length}
           folderCount={folders.length}
@@ -181,7 +181,7 @@ export default function LibraryPage() {
         />
 
         {loading ? (
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <CardSkeleton key={i} />
             ))}
@@ -189,11 +189,12 @@ export default function LibraryPage() {
         ) : pdfs.length === 0 && folders.length === 0 ? (
           <EmptyState type="no-pdfs" />
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-5 sm:space-y-6">
             {hasFolders && (
               <section>
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">
+                <div className="mb-2 flex items-center gap-2 sm:mb-3">
+                  <div className="h-4 w-1 rounded-full bg-accent" />
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-foreground sm:text-muted">
                     Folders
                   </h2>
                   <span className="text-xs tabular-nums text-muted-faint">
@@ -227,8 +228,9 @@ export default function LibraryPage() {
 
             {hasUncategorized && (
               <section>
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">
+                <div className="mb-2 flex items-center gap-2 sm:mb-3">
+                  <div className="h-4 w-1 rounded-full bg-accent" />
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-foreground sm:text-muted">
                     All Documents
                   </h2>
                   <span className="text-xs tabular-nums text-muted-faint">
@@ -236,11 +238,11 @@ export default function LibraryPage() {
                   </span>
                 </div>
                 <div
-                  className="rounded-xl border border-border bg-white"
+                  className="overflow-hidden rounded-xl border border-border bg-white sm:rounded-xl"
                   role={selectMode ? 'listbox' : undefined}
                   aria-label={selectMode ? 'Select PDFs' : undefined}
                 >
-                  <div className="divide-y divide-border-subtle">
+                  <div className="divide-y divide-border-subtle px-3 sm:px-0">
                     {displayedUncategorized.map((pdf) => (
                       <PdfCard
                         key={pdf.id}

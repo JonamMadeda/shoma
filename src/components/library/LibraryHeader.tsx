@@ -25,17 +25,17 @@ export function LibraryHeader({
   onExitSelectMode,
 }: LibraryHeaderProps) {
   return (
-    <div className="mb-8">
-      <div className="flex items-start justify-between gap-4">
+    <div className="mb-6 sm:mb-8">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-3xl">
             Your Library
           </h1>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-0.5 hidden text-sm text-muted sm:block">
             Organize and read your PDF collection
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {selectMode ? (
             <button
               onClick={onExitSelectMode}
@@ -49,7 +49,7 @@ export function LibraryHeader({
               {pdfCount > 0 && (
                 <button
                   onClick={onToggleSelect}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-muted-medium transition-all duration-150 hover:bg-surface-muted active:scale-[0.97]"
+                  className="hidden items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-muted-medium transition-all duration-150 hover:bg-surface-muted active:scale-[0.97] sm:inline-flex"
                   aria-label="Enter select mode"
                 >
                   <Check className="size-4" strokeWidth={1.5} />
@@ -65,7 +65,7 @@ export function LibraryHeader({
               </button>
               <Link
                 href="/upload"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-sm font-medium text-white shadow-sm shadow-accent/20 transition-all duration-150 hover:bg-accent-hover active:scale-[0.97]"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white shadow-sm shadow-accent/20 transition-all duration-150 hover:bg-accent-hover active:scale-[0.97]"
               >
                 <Upload className="size-4" strokeWidth={1.5} />
                 <span className="hidden sm:inline">Upload</span>
@@ -76,7 +76,7 @@ export function LibraryHeader({
       </div>
 
       {!loading && !selectMode && (pdfCount > 0 || folderCount > 0) && (
-        <div className="mt-4 flex items-center gap-2">
+        <div className="mt-3 hidden items-center gap-2 sm:mt-4 sm:flex">
           {pdfCount > 0 && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-light px-2.5 py-1 text-xs font-medium text-accent">
               <FileText className="size-3" strokeWidth={1.5} />
@@ -93,7 +93,7 @@ export function LibraryHeader({
       )}
 
       {selectMode && (
-        <div className="mt-4">
+        <div className="mt-3 sm:mt-4">
           <span className="text-sm font-medium text-accent">
             {selectedCount} selected
           </span>

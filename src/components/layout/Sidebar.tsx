@@ -4,11 +4,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { cn } from '@/lib/utils';
-import { BookOpen, Library, Upload, LogOut, Plus } from 'lucide-react';
+import { BookOpen, Library, Upload, Plus, ChevronRight } from 'lucide-react';
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
 
   return (
     <aside className="hidden lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-60 lg:shrink-0 lg:flex-col lg:border-r lg:border-border bg-sidebar">
@@ -79,22 +79,24 @@ export function Sidebar() {
 
       {user && (
         <div className="border-t border-border p-3">
-          <div className="flex items-center gap-3 rounded-xl bg-white px-3 py-2.5 shadow-xs">
+          <Link
+            href="/account"
+            className={cn(
+              'flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200',
+              pathname === '/account'
+                ? 'bg-accent-light'
+                : 'bg-white shadow-xs hover:shadow-sm'
+            )}
+          >
             <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-hover text-sm font-bold text-white shadow-sm">
               {user.email?.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-foreground">{user.email}</p>
-              <p className="text-[11px] text-muted">Signed in</p>
+              <p className="text-[11px] text-muted">Account</p>
             </div>
-            <button
-              onClick={signOut}
-              className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted transition-all duration-150 hover:bg-red-50 hover:text-red-500"
-              aria-label="Sign out"
-            >
-              <LogOut className="size-4" strokeWidth={1.5} />
-            </button>
-          </div>
+            <ChevronRight className="size-4 shrink-0 text-muted-faint" strokeWidth={1.5} />
+          </Link>
         </div>
       )}
     </aside>

@@ -43,7 +43,7 @@ export function FolderCreateModal({ open, onCreate, onCancel }: FolderCreateModa
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="folder-create-title">
       <div className="fixed inset-0 bg-black/40" onClick={onCancel} />
-      <div className="relative z-10 mx-4 w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
+      <div className="relative z-10 mx-4 w-full max-w-sm rounded-xl bg-white p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] shadow-lg">
         <h3 id="folder-create-title" className="text-sm font-semibold text-foreground">New folder</h3>
         <form onSubmit={handleSubmit} className="mt-4">
           <input
@@ -55,10 +55,10 @@ export function FolderCreateModal({ open, onCreate, onCancel }: FolderCreateModa
             className="block w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground placeholder-muted transition-colors focus:border-muted focus:outline-none focus:ring-1 focus:ring-muted"
           />
           <div className="mt-5 flex justify-end gap-2">
-            <Button variant="secondary" size="sm" type="button" onClick={onCancel}>
+            <Button variant="secondary" type="button" onClick={onCancel}>
               Cancel
             </Button>
-            <Button variant="primary" size="sm" type="submit" disabled={!name.trim()}>
+            <Button variant="primary" type="submit" disabled={!name.trim()}>
               Create
             </Button>
           </div>

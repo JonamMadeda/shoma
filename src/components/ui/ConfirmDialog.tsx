@@ -47,17 +47,16 @@ export function ConfirmDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
       <div className="fixed inset-0 bg-black/40" onClick={onCancel} />
-      <div className="relative z-10 mx-4 w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
+      <div className="relative z-10 mx-4 w-full max-w-sm rounded-xl bg-white p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] shadow-lg">
         <h3 id="confirm-title" className="text-sm font-semibold text-foreground">{title}</h3>
         <p className="mt-2 text-sm text-muted-medium">{message}</p>
         <div className="mt-5 flex justify-end gap-2">
-          <Button variant="secondary" size="sm" onClick={onCancel}>
+          <Button variant="secondary" onClick={onCancel}>
             {cancelLabel}
           </Button>
           <div ref={confirmRef} tabIndex={-1}>
             <Button
               variant={variant === 'danger' ? 'danger' : 'primary'}
-              size="sm"
               onClick={onConfirm}
             >
               {confirmLabel}
