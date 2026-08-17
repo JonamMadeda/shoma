@@ -50,9 +50,9 @@ export function ReaderView({ blocks, fontSize }: ReaderViewProps) {
         </div>
       </div>
 
-      <div className="fixed top-0 left-0 right-0 z-50 h-0.5 bg-slate-100">
+      <div className="fixed top-0 left-0 right-0 z-50 h-0.5 bg-surface-muted">
         <div
-          className="h-full bg-slate-600 transition-[width] duration-150 ease-out"
+          className="h-full bg-accent transition-[width] duration-150 ease-out"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -68,7 +68,7 @@ function renderHeading(block: HeadingBlock, baseSize: number, key: number) {
   return (
     <Tag
       key={key}
-      className="mb-4 mt-10 font-semibold text-slate-900 first:mt-0"
+      className="mb-4 mt-10 font-semibold text-foreground first:mt-0"
       style={{ fontSize: `${baseSize * scale}px`, lineHeight: 1.3 }}
     >
       {block.text}
@@ -80,7 +80,7 @@ function renderParagraph(block: ParagraphBlock, fontSize: number, key: number) {
   return (
     <p
       key={key}
-      className="mb-6 leading-relaxed text-slate-800 last:mb-0"
+      className="mb-6 leading-relaxed text-foreground last:mb-0"
       style={{ fontSize: `${fontSize}px`, lineHeight: 1.75 }}
     >
       {block.text}
@@ -90,13 +90,13 @@ function renderParagraph(block: ParagraphBlock, fontSize: number, key: number) {
 
 function renderTable(block: TableBlock, _fontSize: number, key: number) {
   return (
-    <div key={key} className="mb-6 overflow-x-auto rounded-lg border border-slate-200">
-      <table className="w-full border-collapse text-sm text-slate-700">
+    <div key={key} className="mb-6 overflow-x-auto rounded-lg border border-border">
+      <table className="w-full border-collapse text-sm text-muted-medium">
         {block.headers.length > 0 && (
           <thead>
-            <tr className="bg-slate-50">
+            <tr className="bg-surface-muted">
               {block.headers.map((h, i) => (
-                <th key={i} className="px-3 py-2.5 text-left font-semibold text-slate-800 border-b border-slate-200">
+                <th key={i} className="px-3 py-2.5 text-left font-semibold text-foreground border-b border-border">
                   {h}
                 </th>
               ))}
@@ -105,9 +105,9 @@ function renderTable(block: TableBlock, _fontSize: number, key: number) {
         )}
         <tbody>
           {block.rows.map((row, ri) => (
-            <tr key={ri} className="even:bg-slate-50/50">
+            <tr key={ri} className="even:bg-surface-muted/50">
               {row.map((cell, ci) => (
-                <td key={ci} className="px-3 py-2 border-b border-slate-100">
+                <td key={ci} className="px-3 py-2 border-b border-border-subtle">
                   {cell}
                 </td>
               ))}

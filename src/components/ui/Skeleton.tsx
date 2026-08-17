@@ -4,19 +4,18 @@ interface SkeletonProps {
 
 export function Skeleton({ className = '' }: SkeletonProps) {
   return (
-    <div className={`animate-pulse rounded-md bg-slate-200 ${className}`} />
+    <div className={`animate-pulse rounded-md bg-border ${className}`} />
   );
 }
 
 export function CardSkeleton() {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
-      <div className="mb-3 flex items-start justify-between">
-        <Skeleton className="size-10 rounded-lg" />
-        <Skeleton className="size-6 rounded-md" />
+    <div className="flex items-center gap-4 rounded-xl border border-border bg-white px-4 py-3">
+      <Skeleton className="size-8 shrink-0 rounded-lg" />
+      <div className="flex-1">
+        <Skeleton className="mb-2 h-4 w-2/3" />
+        <Skeleton className="h-3 w-1/3" />
       </div>
-      <Skeleton className="mb-2 h-4 w-3/4" />
-      <Skeleton className="h-3 w-1/2" />
     </div>
   );
 }

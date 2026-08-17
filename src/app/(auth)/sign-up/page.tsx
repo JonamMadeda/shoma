@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { AlertCircle } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -36,7 +37,7 @@ export default function SignUpPage() {
 
   return (
     <>
-      <h1 className="mb-8 text-center font-serif text-2xl font-semibold text-slate-800">
+      <h1 className="mb-6 text-center font-serif text-2xl font-semibold text-foreground">
         Create account
       </h1>
 
@@ -83,16 +84,27 @@ export default function SignUpPage() {
           onChange={(e) => setConfirmPassword(e.target.value)}
         />
 
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {error && (
+          <div className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-700">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {error}
+          </div>
+        )}
 
         <Button type="submit" loading={submitting} className="w-full">
           Create account
         </Button>
       </form>
 
-      <p className="mt-8 text-center text-sm text-slate-500">
+      <div className="my-6 flex items-center gap-3">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-xs text-muted">or</span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
+
+      <p className="text-center text-sm text-muted-medium">
         Already have an account?{' '}
-        <Link href="/sign-in" className="font-medium text-blue-600 hover:text-blue-500">
+        <Link href="/sign-in" className="font-medium text-accent hover:text-accent-hover transition-colors">
           Sign in
         </Link>
       </p>

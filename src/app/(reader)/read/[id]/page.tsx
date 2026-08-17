@@ -48,8 +48,8 @@ export default function ReadPage() {
       <div className="flex min-h-screen flex-col">
         <div className="flex flex-1 items-center justify-center">
           <div className="flex flex-col items-center gap-3">
-            <div className="size-8 animate-spin rounded-full border-[3px] border-slate-200 border-t-slate-700" />
-            <p className="text-sm text-slate-400">Preparing reader…</p>
+            <div className="size-8 animate-spin rounded-full border-[3px] border-border border-t-accent" />
+            <p className="text-sm text-muted">Preparing reader...</p>
           </div>
         </div>
       </div>
@@ -69,11 +69,11 @@ export default function ReadPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
-      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+      <header className="sticky top-0 z-40 border-b border-border/80 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
         <div className="mx-auto flex h-12 max-w-3xl items-center justify-between px-4">
           <button
             onClick={handleBack}
-            className="flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-slate-800"
+            className="flex items-center gap-1.5 text-sm font-medium text-muted-medium transition-colors hover:text-foreground"
           >
             <ArrowLeft className="size-4" strokeWidth={1.5} />
             Library
@@ -83,18 +83,18 @@ export default function ReadPage() {
             <button
               onClick={() => setFontSize(Math.max(MIN_FONT, fontSize - STEP))}
               disabled={fontSize <= MIN_FONT}
-              className="flex size-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="flex size-7 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-muted hover:text-muted-medium disabled:opacity-30 disabled:cursor-not-allowed"
               aria-label="Decrease font size"
             >
               <Minus className="size-3.5" strokeWidth={1.5} />
             </button>
-            <span className="w-8 text-center text-xs font-medium text-slate-500 tabular-nums">
+            <span className="w-8 text-center text-xs font-medium text-muted-medium tabular-nums">
               {fontSize}
             </span>
             <button
               onClick={() => setFontSize(Math.min(MAX_FONT, fontSize + STEP))}
               disabled={fontSize >= MAX_FONT}
-              className="flex size-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="flex size-7 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-muted hover:text-muted-medium disabled:opacity-30 disabled:cursor-not-allowed"
               aria-label="Increase font size"
             >
               <Plus className="size-3.5" strokeWidth={1.5} />
