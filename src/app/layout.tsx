@@ -17,6 +17,7 @@ export const metadata: Metadata = {
   description: "Upload a PDF and read its content in a clean, distraction-free layout.",
   manifest: "/manifest.json",
   appleWebApp: { capable: true, title: "shoma", statusBarStyle: "default" },
+  other: { "theme-color": "#6366f1" },
   icons: [
     { rel: "icon", url: "/icon.svg", type: "image/svg+xml" },
     { rel: "apple-touch-icon", url: "/icon.svg", sizes: "any" },
