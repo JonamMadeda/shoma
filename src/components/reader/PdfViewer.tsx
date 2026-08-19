@@ -133,8 +133,8 @@ export function PdfViewer({ data }: PdfViewerProps) {
     return () => container.removeEventListener('scroll', handleScroll);
   }, [pageCount, isLandscape, resetHideTimer]);
 
-  // Touch: pinch-to-zoom + swipe
-  const touchRef = useRef<{ dist: number; zoom: number; startX: number; startY: number } | null>(null);
+  // Touch: pinch-to-zoom only
+  const touchRef = useRef<{ dist: number; zoom: number } | null>(null);
 
   const getTouchDist = (touches: React.TouchList) => {
     const t = touches as unknown as TouchList;
@@ -146,11 +146,9 @@ export function PdfViewer({ data }: PdfViewerProps) {
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2) {
       e.preventDefault();
-      touchRef.current = { dist: getTouchDist(e.touches), zoom, startX: 0, startY: 0 };
-    } else if (e.touches.length === 1 && isLandscape) {
-      touchRef.current = { ...touchRef.current, dist: 0, zoom, startX: e.touches[0].clientX, startY: e.touches[0].clientY };
+      touchRef.current = { dist: getTouchDist(e.touches), zoom };
     }
-  }, [zoom, isLandscape]);
+  }, [zoom]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2 && touchRef.current) {
@@ -163,28 +161,9 @@ export function PdfViewer({ data }: PdfViewerProps) {
     }
   }, []);
 
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length === 0 && touchRef.current && isLandscape) {
-      const dx = e.changedTouches[0].clientX - touchRef.current.startX;
-      const dy = e.changedTouches[0].clientY - touchRef.current.startY;
-      const absDx = Math.abs(dx);
-      const absDy = Math.abs(dy);
-
-      // Swipe detection (minimum 50px, more vertical than horizontal)
-      if ((absDy > 50 || absDx > 50) && absDy > absDx * 0.5) {
-        if (dy < 0 && currentPage < pageCount) {
-          // Swipe up → next page
-          const nextEl = pageRefs.current.get(currentPage + 1);
-          if (nextEl) nextEl.scrollIntoView({ behavior: 'smooth' });
-        } else if (dy > 0 && currentPage > 1) {
-          // Swipe down → prev page
-          const prevEl = pageRefs.current.get(currentPage - 1);
-          if (prevEl) prevEl.scrollIntoView({ behavior: 'smooth' });
-        }
-      }
-    }
+  const handleTouchEnd = useCallback(() => {
     touchRef.current = null;
-  }, [isLandscape, currentPage, pageCount]);
+  }, []);
 
   // Zoom handlers
   const handleZoomIn = () => { setZoomMode('custom'); setZoom((z) => Math.min(z + 25, 300)); setRenderedPages(new Set()); };
