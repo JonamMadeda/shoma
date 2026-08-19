@@ -9,6 +9,7 @@ import type { FolderItem, PdfListItem } from '@/types/library';
 interface FolderSectionProps {
   folder: FolderItem;
   pdfs: PdfListItem[];
+  totalPdfCount: number;
   expanded: boolean;
   selectMode: boolean;
   selectedIds: Set<string>;
@@ -27,6 +28,7 @@ interface FolderSectionProps {
 export function FolderSection({
   folder,
   pdfs,
+  totalPdfCount,
   expanded,
   selectMode,
   selectedIds,
@@ -57,7 +59,7 @@ export function FolderSection({
           <div className="min-w-0 flex-1">
             <span className="text-sm font-medium text-foreground">{folder.name}</span>
             <span className="ml-1.5 text-xs tabular-nums text-muted sm:ml-2">
-              {pdfs.length} PDF{pdfs.length !== 1 ? 's' : ''}
+              {totalPdfCount} PDF{totalPdfCount !== 1 ? 's' : ''}
             </span>
           </div>
           <ChevronRight

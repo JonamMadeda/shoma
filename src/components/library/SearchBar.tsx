@@ -36,6 +36,18 @@ export function SearchBar({ search, sort, onSearchChange, onSortChange }: Search
     };
   }, [handleClickOutside]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === '/' && document.activeElement?.tagName !== 'INPUT') {
+        event.preventDefault();
+        document.getElementById('library-search')?.focus();
+      }
+      if (event.key === 'Escape') setSortOpen(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <div className="mb-5 sm:mb-6">
       <div className="flex items-center gap-2 sm:gap-3">
@@ -43,6 +55,7 @@ export function SearchBar({ search, sort, onSearchChange, onSortChange }: Search
           <div className="flex items-center gap-2.5 rounded-xl border border-border bg-white px-3 py-2.5 transition-all duration-200 focus-within:border-accent focus-within:shadow-md focus-within:shadow-accent/5 focus-within:ring-2 focus-within:ring-accent/20 sm:px-4 sm:py-3">
             <Search className="size-4 shrink-0 text-muted transition-colors duration-200 group-focus-within:text-accent" strokeWidth={1.5} />
             <input
+              id="library-search"
               type="text"
               placeholder="Search..."
               value={search}
@@ -61,6 +74,19 @@ export function SearchBar({ search, sort, onSearchChange, onSortChange }: Search
             )}
           </div>
         </div>
+
+        <label className="relative sm:hidden">
+          <span className="sr-only">Sort documents</span>
+          <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" strokeWidth={1.5} />
+          <select
+            value={sort}
+            onChange={(event) => onSortChange(event.target.value as SortKey)}
+            className="h-[42px] appearance-none rounded-xl border border-border bg-white py-2 pl-9 pr-2 text-sm font-medium text-muted-medium focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+            aria-label="Sort documents"
+          >
+            {sortOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </label>
 
         <div className="relative hidden sm:block" ref={sortRef}>
           <button

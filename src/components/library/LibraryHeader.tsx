@@ -49,7 +49,7 @@ export function LibraryHeader({
               {pdfCount > 0 && (
                 <button
                   onClick={onToggleSelect}
-                  className="hidden items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-muted-medium transition-all duration-150 hover:bg-surface-muted active:scale-[0.97] sm:inline-flex"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-muted-medium transition-all duration-150 hover:bg-surface-muted active:scale-[0.97]"
                   aria-label="Enter select mode"
                 >
                   <Check className="size-4" strokeWidth={1.5} />

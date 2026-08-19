@@ -158,6 +158,12 @@ export default function LibraryPage() {
 
   const hasFolders = folders.length > 0;
   const hasUncategorized = pdfsByFolder.uncategorized.length > 0;
+  const hasSearchResults = filteredPdfs.length > 0;
+  const folderPdfCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const pdf of pdfs) if (pdf.folderId) counts[pdf.folderId] = (counts[pdf.folderId] ?? 0) + 1;
+    return counts;
+  }, [pdfs]);
 
   return (
     <>
@@ -188,6 +194,8 @@ export default function LibraryPage() {
           </div>
         ) : pdfs.length === 0 && folders.length === 0 ? (
           <EmptyState type="no-pdfs" />
+        ) : search && !hasSearchResults ? (
+          <EmptyState type="no-results" onClearSearch={() => setSearch('')} />
         ) : (
           <div className="space-y-5 sm:space-y-6">
             {hasFolders && (
@@ -207,6 +215,7 @@ export default function LibraryPage() {
                       key={folder.id}
                       folder={folder}
                       pdfs={pdfsByFolder.byFolder[folder.id] ?? []}
+                      totalPdfCount={folderPdfCounts[folder.id] ?? 0}
                       expanded={expandedFolders.has(folder.id)}
                       selectMode={selectMode}
                       selectedIds={selectedIds}
@@ -242,7 +251,7 @@ export default function LibraryPage() {
                   role={selectMode ? 'listbox' : undefined}
                   aria-label={selectMode ? 'Select PDFs' : undefined}
                 >
-                  <div className="divide-y divide-border-subtle px-3 sm:px-0">
+                  <div className="divide-y divide-border-subtle px-3">
                     {displayedUncategorized.map((pdf) => (
                       <PdfCard
                         key={pdf.id}

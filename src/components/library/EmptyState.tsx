@@ -4,11 +4,12 @@ import Link from 'next/link';
 import { Upload, FolderOpen, FileText } from 'lucide-react';
 
 interface EmptyStateProps {
-  type: 'no-pdfs' | 'all-in-folders' | 'empty-folder';
+  type: 'no-pdfs' | 'all-in-folders' | 'empty-folder' | 'no-results';
   folderName?: string;
+  onClearSearch?: () => void;
 }
 
-export function EmptyState({ type, folderName }: EmptyStateProps) {
+export function EmptyState({ type, folderName, onClearSearch }: EmptyStateProps) {
   if (type === 'no-pdfs') {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface-muted/50 py-20 text-center">
@@ -42,6 +43,16 @@ export function EmptyState({ type, folderName }: EmptyStateProps) {
         </div>
         <p className="text-sm font-medium text-foreground">All organized</p>
         <p className="mt-1 text-xs text-muted">All your PDFs are in folders</p>
+      </div>
+    );
+  }
+
+  if (type === 'no-results') {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface-muted/30 py-14 text-center">
+        <p className="text-sm font-semibold text-foreground">No matching documents</p>
+        <p className="mt-1 text-sm text-muted">Try a different title or clear your search.</p>
+        <button onClick={onClearSearch} className="mt-4 rounded-lg px-3 py-2 text-sm font-medium text-accent hover:bg-accent-light">Clear search</button>
       </div>
     );
   }
