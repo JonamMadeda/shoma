@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
-import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { Minus, Plus, Maximize2, ChevronsUpDown } from 'lucide-react';
+import { useOrientation } from '@/hooks/useOrientation';
+import { cn } from '@/lib/utils';
 
 GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.mjs',
@@ -26,7 +28,27 @@ export function PdfViewer({ data }: PdfViewerProps) {
   const [renderedPages, setRenderedPages] = useState<Set<number>>(new Set());
   const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const renderingRef = useRef<Set<number>>(new Set());
+  const orientation = useOrientation();
+  const isLandscape = orientation === 'landscape';
 
+  // Auto-hide toolbar in landscape
+  const [toolbarVisible, setToolbarVisible] = useState(true);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const resetHideTimer = useCallback(() => {
+    if (!isLandscape) return;
+    setToolbarVisible(true);
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => setToolbarVisible(false), 3000);
+  }, [isLandscape]);
+
+  useEffect(() => {
+    if (isLandscape) resetHideTimer();
+    else setToolbarVisible(true);
+    return () => { if (hideTimerRef.current) clearTimeout(hideTimerRef.current); };
+  }, [isLandscape, resetHideTimer]);
+
+  // Load PDF
   useEffect(() => {
     let cancelled = false;
     getDocument({ data: new Uint8Array(data) }).promise.then((doc) => {
@@ -37,12 +59,6 @@ export function PdfViewer({ data }: PdfViewerProps) {
     });
     return () => { cancelled = true; };
   }, [data]);
-
-  const getPageViewport = useCallback(async (pageNum: number, scale: number) => {
-    if (!pdf) return null;
-    const page = await pdf.getPage(pageNum);
-    return page.getViewport({ scale });
-  }, [pdf]);
 
   const renderPage = useCallback(async (pageNum: number, scale: number) => {
     if (!pdf || renderedPages.has(pageNum) || renderingRef.current.has(pageNum)) return;
@@ -71,9 +87,9 @@ export function PdfViewer({ data }: PdfViewerProps) {
 
   const getBaseScale = useCallback(() => {
     if (!pdf || !containerRef.current) return 1;
-    const containerWidth = containerRef.current.clientWidth - 32;
+    const containerWidth = containerRef.current.clientWidth - (isLandscape ? 16 : 32);
     return containerWidth / 612;
-  }, [pdf]);
+  }, [pdf, isLandscape]);
 
   const renderAllPages = useCallback(async () => {
     if (!pdf) return;
@@ -94,11 +110,10 @@ export function PdfViewer({ data }: PdfViewerProps) {
   }, [renderAllPages]);
 
   useEffect(() => {
-    if (zoomMode !== 'custom') {
-      setRenderedPages(new Set());
-    }
+    if (zoomMode !== 'custom') setRenderedPages(new Set());
   }, [zoomMode]);
 
+  // Scroll tracking
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -108,96 +123,119 @@ export function PdfViewer({ data }: PdfViewerProps) {
       let page = 1;
       for (let i = 1; i <= pageCount; i++) {
         const el = pageRefs.current.get(i);
-        if (el && el.offsetTop <= scrollTop + 100) {
-          page = i;
-        }
+        if (el && el.offsetTop <= scrollTop + 100) page = i;
       }
       setCurrentPage(page);
+      if (isLandscape) resetHideTimer();
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [pageCount]);
+  }, [pageCount, isLandscape, resetHideTimer]);
 
-  const handleZoomIn = () => {
-    setZoomMode('custom');
-    setZoom((z) => Math.min(z + 25, 300));
-    setRenderedPages(new Set());
+  // Touch: pinch-to-zoom + swipe
+  const touchRef = useRef<{ dist: number; zoom: number; startX: number; startY: number } | null>(null);
+
+  const getTouchDist = (touches: React.TouchList) => {
+    const t = touches as unknown as TouchList;
+    const dx = t[0].clientX - t[1].clientX;
+    const dy = t[0].clientY - t[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
   };
 
-  const handleZoomOut = () => {
-    setZoomMode('custom');
-    setZoom((z) => Math.max(z - 25, 50));
-    setRenderedPages(new Set());
-  };
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      touchRef.current = { dist: getTouchDist(e.touches), zoom, startX: 0, startY: 0 };
+    } else if (e.touches.length === 1 && isLandscape) {
+      touchRef.current = { ...touchRef.current, dist: 0, zoom, startX: e.touches[0].clientX, startY: e.touches[0].clientY };
+    }
+  }, [zoom, isLandscape]);
 
-  const handleFitWidth = () => {
-    setZoomMode('width');
-    setRenderedPages(new Set());
-  };
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2 && touchRef.current) {
+      e.preventDefault();
+      const newDist = getTouchDist(e.touches);
+      const ratio = newDist / touchRef.current.dist;
+      const newZoom = Math.max(50, Math.min(300, Math.round(touchRef.current.zoom * ratio)));
+      setZoomMode('custom');
+      setZoom(newZoom);
+    }
+  }, []);
 
-  const handleFitPage = () => {
-    setZoomMode('page');
-    setRenderedPages(new Set());
-  };
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 0 && touchRef.current && isLandscape) {
+      const dx = e.changedTouches[0].clientX - touchRef.current.startX;
+      const dy = e.changedTouches[0].clientY - touchRef.current.startY;
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
+
+      // Swipe detection (minimum 50px, more vertical than horizontal)
+      if ((absDy > 50 || absDx > 50) && absDy > absDx * 0.5) {
+        if (dy < 0 && currentPage < pageCount) {
+          // Swipe up → next page
+          const nextEl = pageRefs.current.get(currentPage + 1);
+          if (nextEl) nextEl.scrollIntoView({ behavior: 'smooth' });
+        } else if (dy > 0 && currentPage > 1) {
+          // Swipe down → prev page
+          const prevEl = pageRefs.current.get(currentPage - 1);
+          if (prevEl) prevEl.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    }
+    touchRef.current = null;
+  }, [isLandscape, currentPage, pageCount]);
+
+  // Zoom handlers
+  const handleZoomIn = () => { setZoomMode('custom'); setZoom((z) => Math.min(z + 25, 300)); setRenderedPages(new Set()); };
+  const handleZoomOut = () => { setZoomMode('custom'); setZoom((z) => Math.max(z - 25, 50)); setRenderedPages(new Set()); };
+  const handleFitWidth = () => { setZoomMode('width'); setRenderedPages(new Set()); };
+  const handleFitPage = () => { setZoomMode('page'); setRenderedPages(new Set()); };
 
   return (
-    <div className="flex flex-1 flex-col bg-muted/30">
-      <div className="flex items-center justify-center gap-1 border-b border-border bg-white px-2 py-1.5 sm:gap-2">
-        <button
-          onClick={handleZoomOut}
-          className="flex size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-muted hover:text-foreground active:scale-95"
-          aria-label="Zoom out"
-        >
+    <div
+      className="flex flex-1 flex-col bg-muted/30"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Toolbar — auto-hides in landscape */}
+      <div
+        className={cn(
+          'flex items-center justify-center gap-1 border-b border-border bg-white px-2 py-1.5 transition-opacity duration-300 sm:gap-2',
+          isLandscape && !toolbarVisible && 'pointer-events-none opacity-0'
+        )}
+      >
+        <button onClick={handleZoomOut} className="flex size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-muted hover:text-foreground active:scale-95" aria-label="Zoom out">
           <Minus className="size-4" strokeWidth={1.5} />
         </button>
         <span className="min-w-[3rem] text-center text-xs font-medium tabular-nums text-muted-medium">
           {zoomMode === 'custom' ? `${zoom}%` : 'Fit'}
         </span>
-        <button
-          onClick={handleZoomIn}
-          className="flex size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-muted hover:text-foreground active:scale-95"
-          aria-label="Zoom in"
-        >
+        <button onClick={handleZoomIn} className="flex size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-muted hover:text-foreground active:scale-95" aria-label="Zoom in">
           <Plus className="size-4" strokeWidth={1.5} />
         </button>
         <div className="mx-1 h-4 w-px bg-border" />
-        <button
-          onClick={handleFitWidth}
-          className={`flex size-8 items-center justify-center rounded-lg transition-colors active:scale-95 ${
-            zoomMode === 'width' ? 'bg-accent-light text-accent' : 'text-muted hover:bg-surface-muted hover:text-foreground'
-          }`}
-          aria-label="Fit width"
-        >
+        <button onClick={handleFitWidth} className={cn('flex size-8 items-center justify-center rounded-lg transition-colors active:scale-95', zoomMode === 'width' ? 'bg-accent-light text-accent' : 'text-muted hover:bg-surface-muted hover:text-foreground')} aria-label="Fit width">
           <Maximize2 className="size-4" strokeWidth={1.5} />
         </button>
-        <button
-          onClick={handleFitPage}
-          className={`flex size-8 items-center justify-center rounded-lg transition-colors active:scale-95 ${
-            zoomMode === 'page' ? 'bg-accent-light text-accent' : 'text-muted hover:bg-surface-muted hover:text-foreground'
-          }`}
-          aria-label="Fit page"
-        >
+        <button onClick={handleFitPage} className={cn('flex size-8 items-center justify-center rounded-lg transition-colors active:scale-95', zoomMode === 'page' ? 'bg-accent-light text-accent' : 'text-muted hover:bg-surface-muted hover:text-foreground')} aria-label="Fit page">
           <ChevronsUpDown className="size-4" strokeWidth={1.5} />
         </button>
         <div className="mx-1 h-4 w-px bg-border" />
-        <span className="text-xs tabular-nums text-muted">
-          {currentPage} / {pageCount}
-        </span>
+        <span className="text-xs tabular-nums text-muted">{currentPage} / {pageCount}</span>
       </div>
 
-      <div ref={containerRef} className="flex-1 overflow-auto p-4">
-        <div className="flex flex-col items-center gap-4">
+      {/* Pages */}
+      <div ref={containerRef} className="flex-1 overflow-auto" style={{ padding: isLandscape ? '4px' : '16px' }}>
+        <div className="flex flex-col items-center" style={{ gap: isLandscape ? '2px' : '16px' }}>
           {Array.from({ length: pageCount }, (_, i) => i + 1).map((pageNum) => (
             <div
               key={pageNum}
               ref={(el) => { if (el) pageRefs.current.set(pageNum, el); }}
               className="relative bg-white shadow-lg"
             >
-              <canvas
-                id={`pdf-page-${pageNum}`}
-                className="block"
-              />
+              <canvas id={`pdf-page-${pageNum}`} className="block" />
               <div className="absolute bottom-2 right-2 rounded bg-black/60 px-2 py-0.5 text-[10px] text-white">
                 {pageNum}
               </div>
@@ -205,6 +243,18 @@ export function PdfViewer({ data }: PdfViewerProps) {
           ))}
         </div>
       </div>
+
+      {/* Landscape: floating page indicator */}
+      {isLandscape && (
+        <div
+          className={cn(
+            'fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-full bg-black/70 px-4 py-1.5 text-sm font-medium text-white tabular-nums backdrop-blur transition-opacity duration-300',
+            toolbarVisible && 'opacity-0 pointer-events-none'
+          )}
+        >
+          {currentPage} / {pageCount}
+        </div>
+      )}
     </div>
   );
 }

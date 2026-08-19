@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Minus, Plus, FileText, Image } from 'lucide-react';
 import { ReaderView } from '@/components/reader/ReaderView';
 import { PdfViewer } from '@/components/reader/PdfViewer';
 import type { ContentBlock } from '@/lib/content-formatter';
 import { Button } from '@/components/ui/Button';
+import { useOrientation } from '@/hooks/useOrientation';
 import { cn } from '@/lib/utils';
 
 const MIN_FONT = 14;
@@ -22,7 +23,27 @@ export default function ReadPage() {
   const [viewMode, setViewMode] = useState<'text' | 'pdf'>('text');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const orientation = useOrientation();
+  const isLandscape = orientation === 'landscape';
 
+  // Auto-hide header in landscape
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const resetHideTimer = useCallback(() => {
+    if (!isLandscape) return;
+    setHeaderVisible(true);
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => setHeaderVisible(false), 3000);
+  }, [isLandscape]);
+
+  useEffect(() => {
+    if (isLandscape) resetHideTimer();
+    else setHeaderVisible(true);
+    return () => { if (hideTimerRef.current) clearTimeout(hideTimerRef.current); };
+  }, [isLandscape, resetHideTimer]);
+
+  // Load PDF
   useEffect(() => {
     async function load() {
       try {
@@ -49,6 +70,14 @@ export default function ReadPage() {
 
   const handleBack = useCallback(() => router.push('/'), [router]);
 
+  // Tap to show header in landscape
+  const handleTap = useCallback(() => {
+    if (isLandscape && !headerVisible) {
+      setHeaderVisible(true);
+      resetHideTimer();
+    }
+  }, [isLandscape, headerVisible, resetHideTimer]);
+
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col">
@@ -74,9 +103,15 @@ export default function ReadPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-white">
-      <header className="sticky top-0 z-40 border-b border-border/80 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
+    <div className="flex min-h-screen flex-col bg-white" onClick={handleTap}>
+      {/* Header — auto-hides in landscape */}
+      <header
+        className={cn(
+          'sticky top-0 z-40 border-b border-border/80 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 transition-all duration-300',
+          isLandscape && !headerVisible && 'pointer-events-none -translate-y-full opacity-0'
+        )}
+      >
+        <div className={cn('mx-auto flex h-14 items-center justify-between px-4', isLandscape ? 'max-w-full' : 'max-w-3xl')}>
           <button
             onClick={handleBack}
             className="flex items-center gap-1.5 py-2 text-sm font-medium text-muted-medium transition-colors hover:text-foreground active:scale-95"
@@ -90,9 +125,7 @@ export default function ReadPage() {
               onClick={() => setViewMode('text')}
               className={cn(
                 'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-150',
-                viewMode === 'text'
-                  ? 'bg-accent text-white shadow-sm'
-                  : 'text-muted hover:text-foreground'
+                viewMode === 'text' ? 'bg-accent text-white shadow-sm' : 'text-muted hover:text-foreground'
               )}
             >
               <FileText className="size-3.5" strokeWidth={1.5} />
@@ -102,9 +135,7 @@ export default function ReadPage() {
               onClick={() => setViewMode('pdf')}
               className={cn(
                 'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-150',
-                viewMode === 'pdf'
-                  ? 'bg-accent text-white shadow-sm'
-                  : 'text-muted hover:text-foreground'
+                viewMode === 'pdf' ? 'bg-accent text-white shadow-sm' : 'text-muted hover:text-foreground'
               )}
             >
               <Image className="size-3.5" strokeWidth={1.5} />
