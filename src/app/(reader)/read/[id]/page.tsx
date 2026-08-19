@@ -70,14 +70,6 @@ export default function ReadPage() {
 
   const handleBack = useCallback(() => router.push('/'), [router]);
 
-  // Tap to show header in landscape
-  const handleTap = useCallback(() => {
-    if (isLandscape && !headerVisible) {
-      setHeaderVisible(true);
-      resetHideTimer();
-    }
-  }, [isLandscape, headerVisible, resetHideTimer]);
-
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col">
@@ -103,7 +95,15 @@ export default function ReadPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-white" onClick={handleTap}>
+    <div className="flex min-h-screen flex-col bg-white">
+      {/* Tap zone to reveal header in landscape */}
+      {isLandscape && !headerVisible && (
+        <div
+          className="fixed top-0 left-0 right-0 z-50 h-8"
+          onPointerDown={() => { setHeaderVisible(true); resetHideTimer(); }}
+        />
+      )}
+
       {/* Header — auto-hides in landscape */}
       <header
         className={cn(
