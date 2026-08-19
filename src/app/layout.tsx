@@ -13,10 +13,10 @@ const merriweather = Merriweather({
 });
 
 export const metadata: Metadata = {
-  title: "shoma — PDF Reader",
+  title: "shooma — PDF Reader",
   description: "Upload a PDF and read its content in a clean, distraction-free layout.",
   manifest: "/manifest.json",
-  appleWebApp: { capable: true, title: "shoma", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "shooma", statusBarStyle: "default" },
   other: { "theme-color": "#6366f1" },
   icons: [
     { rel: "icon", url: "/icon.svg", type: "image/svg+xml" },

@@ -7,7 +7,7 @@ import { getSession } from '@/lib/auth';
 
 async function auth() {
   const cookieStore = await cookies();
-  const token = cookieStore.get('shoma_session')?.value;
+  const token = cookieStore.get('shooma_session')?.value;
   if (!token) return null;
   const { user, error } = await getSession(token);
   if (error || !user) return null;

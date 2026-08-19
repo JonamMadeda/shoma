@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { signIn, signUp, getSession } from '@/lib/auth';
 
-const SESSION_COOKIE = 'shoma_session';
+const SESSION_COOKIE = 'shooma_session';
 
 export async function POST(
   request: Request,

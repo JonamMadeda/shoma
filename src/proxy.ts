@@ -6,7 +6,7 @@ const authPaths = ['/sign-in', '/sign-up'];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const session = request.cookies.get('shoma_session')?.value;
+  const session = request.cookies.get('shooma_session')?.value;
 
   const isProtected = pathname === '/' || protectedPaths.some((p) => pathname.startsWith(p));
   const isAuthPage = authPaths.some((p) => pathname.startsWith(p));

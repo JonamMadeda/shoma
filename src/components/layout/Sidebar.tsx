@@ -19,7 +19,7 @@ export function Sidebar() {
           </div>
           <div>
             <span className="text-lg font-bold tracking-tight text-foreground">
-              shoma
+              shooma
             </span>
             <p className="text-[11px] text-muted">PDF Reader</p>
           </div>

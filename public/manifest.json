@@ -1,6 +1,6 @@
 {
-  "name": "shoma — PDF Reader",
-  "short_name": "shoma",
+  "name": "shooma — PDF Reader",
+  "short_name": "shooma",
   "description": "Upload PDFs and read their content in a clean, distraction-free layout.",
   "start_url": "/",
   "display": "standalone",

@@ -8,7 +8,7 @@ import { getSession } from '@/lib/auth';
 export async function GET() {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get('shoma_session')?.value;
+    const token = cookieStore.get('shooma_session')?.value;
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const { user, error: authError } = await getSession(token);
     if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -28,7 +28,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get('shoma_session')?.value;
+    const token = cookieStore.get('shooma_session')?.value;
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const { user, error: authError } = await getSession(token);
     if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

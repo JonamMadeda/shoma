@@ -21,7 +21,7 @@ export default function AuthLayout({
             <FileText className="h-6 w-6" />
           </div>
           <span className="text-xl font-semibold tracking-tight text-foreground">
-            shoma
+            shooma
           </span>
         </div>
         <div className="rounded-2xl border border-border bg-white p-8 shadow-xl shadow-accent/5">

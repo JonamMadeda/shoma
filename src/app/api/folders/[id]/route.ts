@@ -11,7 +11,7 @@ export async function DELETE(
 ) {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get('shoma_session')?.value;
+    const token = cookieStore.get('shooma_session')?.value;
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const { user, error: authError } = await getSession(token);
     if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
