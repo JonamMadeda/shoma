@@ -5,6 +5,9 @@ import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { Minus, Plus, Maximize2, ChevronsUpDown } from 'lucide-react';
 import { useOrientation } from '@/hooks/useOrientation';
+import { useReadingProgress } from '@/hooks/useReadingProgress';
+import { useReadingStats } from '@/hooks/useReadingStats';
+import { PageThumbnails } from './PageThumbnails';
 import { cn } from '@/lib/utils';
 
 GlobalWorkerOptions.workerSrc = new URL(
@@ -14,11 +17,12 @@ GlobalWorkerOptions.workerSrc = new URL(
 
 interface PdfViewerProps {
   data: Uint8Array;
+  pdfId: string;
 }
 
 type ZoomMode = 'width' | 'page' | 'custom';
 
-export function PdfViewer({ data }: PdfViewerProps) {
+export function PdfViewer({ data, pdfId }: PdfViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
   const [pageCount, setPageCount] = useState(0);
@@ -30,6 +34,9 @@ export function PdfViewer({ data }: PdfViewerProps) {
   const renderingRef = useRef<Set<number>>(new Set());
   const orientation = useOrientation();
   const isLandscape = orientation === 'landscape';
+  const { getProgress, saveProgress } = useReadingProgress(pdfId);
+  const { trackPage } = useReadingStats(pdfId);
+  const [thumbnailsOpen, setThumbnailsOpen] = useState(false);
 
   // Auto-hide toolbar in landscape
   const [toolbarVisible, setToolbarVisible] = useState(true);
@@ -106,8 +113,18 @@ export function PdfViewer({ data }: PdfViewerProps) {
   }, [pdf, pageCount, zoom, zoomMode, getBaseScale, renderPage]);
 
   useEffect(() => {
-    renderAllPages();
-  }, [renderAllPages]);
+    renderAllPages().then(() => {
+      // Restore reading progress
+      const progress = getProgress();
+      if (progress) {
+        const el = pageRefs.current.get(progress.page);
+        if (el) {
+          el.scrollIntoView({ behavior: 'instant' });
+          setCurrentPage(progress.page);
+        }
+      }
+    });
+  }, [renderAllPages, getProgress]);
 
   useEffect(() => {
     if (zoomMode !== 'custom') setRenderedPages(new Set());
@@ -119,7 +136,7 @@ export function PdfViewer({ data }: PdfViewerProps) {
     if (!container) return;
 
     const handleScroll = () => {
-      const { scrollTop } = container;
+      const { scrollTop, scrollHeight, clientHeight } = container;
       let page = 1;
       for (let i = 1; i <= pageCount; i++) {
         const el = pageRefs.current.get(i);
@@ -127,6 +144,15 @@ export function PdfViewer({ data }: PdfViewerProps) {
       }
       setCurrentPage(page);
       if (isLandscape) resetHideTimer();
+
+      // Track page read
+      trackPage(page);
+
+      // Save progress
+      const scrollPercent = scrollHeight > clientHeight
+        ? Math.round((scrollTop / (scrollHeight - clientHeight)) * 100)
+        : 0;
+      saveProgress(page, scrollPercent);
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
@@ -171,6 +197,11 @@ export function PdfViewer({ data }: PdfViewerProps) {
   const handleFitWidth = () => { setZoomMode('width'); setRenderedPages(new Set()); };
   const handleFitPage = () => { setZoomMode('page'); setRenderedPages(new Set()); };
 
+  const handlePageSelect = useCallback((page: number) => {
+    const el = pageRefs.current.get(page);
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
   return (
     <div
       className="flex flex-1 flex-col bg-muted/30"
@@ -185,6 +216,14 @@ export function PdfViewer({ data }: PdfViewerProps) {
           isLandscape && !toolbarVisible && 'pointer-events-none opacity-0'
         )}
       >
+        <PageThumbnails
+          pdf={pdf}
+          pageCount={pageCount}
+          currentPage={currentPage}
+          isOpen={thumbnailsOpen}
+          onToggle={() => setThumbnailsOpen((p) => !p)}
+          onPageSelect={handlePageSelect}
+        />
         <button onClick={handleZoomOut} className="flex size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-muted hover:text-foreground active:scale-95" aria-label="Zoom out">
           <Minus className="size-4" strokeWidth={1.5} />
         </button>

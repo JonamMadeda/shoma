@@ -2,12 +2,17 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Minus, Plus, FileText, Image } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, FileText, Image, Download, Pencil } from 'lucide-react';
 import { ReaderView } from '@/components/reader/ReaderView';
 import { PdfViewer } from '@/components/reader/PdfViewer';
+import { PdfSearch } from '@/components/reader/PdfSearch';
+import { BookmarkButton } from '@/components/reader/BookmarkButton';
+import { RenameModal } from '@/components/ui/RenameModal';
 import type { ContentBlock } from '@/lib/content-formatter';
 import { Button } from '@/components/ui/Button';
 import { useOrientation } from '@/hooks/useOrientation';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { cachePdf, getCachedPdf } from '@/lib/offline-cache';
 import { cn } from '@/lib/utils';
 
 const MIN_FONT = 14;
@@ -23,6 +28,8 @@ export default function ReadPage() {
   const [viewMode, setViewMode] = useState<'text' | 'pdf'>('text');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pdfTitle, setPdfTitle] = useState<string>('');
+  const [showRename, setShowRename] = useState(false);
   const orientation = useOrientation();
   const isLandscape = orientation === 'landscape';
 
@@ -47,13 +54,36 @@ export default function ReadPage() {
   useEffect(() => {
     async function load() {
       try {
+        // Try to load from cache first (offline support)
+        const cached = await getCachedPdf(id);
+        if (cached) {
+          const binary = atob(cached.content);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          setPdfBytes(bytes);
+          setPdfTitle(cached.title || cached.filename.replace(/\.pdf$/i, ''));
+          const { extractPages } = await import('@/lib/pdf-parser');
+          const { formatContent } = await import('@/lib/content-formatter');
+          const file = new File([bytes], cached.filename, { type: 'application/pdf' });
+          const pages = await extractPages(file);
+          setBlocks(formatContent(pages));
+          setLoading(false);
+          return;
+        }
+
+        // Fetch from server
         const res = await fetch(`/api/pdfs/${id}`);
         if (!res.ok) throw new Error('PDF not found');
         const pdf = await res.json();
+        setPdfTitle(pdf.title || pdf.filename.replace(/\.pdf$/i, ''));
         const binary = atob(pdf.content);
         const bytes = new Uint8Array(binary.length);
         for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
         setPdfBytes(bytes);
+
+        // Cache for offline use
+        await cachePdf(id, pdf.content, pdf.filename, pdf.title || pdf.filename);
+
         const { extractPages } = await import('@/lib/pdf-parser');
         const { formatContent } = await import('@/lib/content-formatter');
         const file = new File([bytes], pdf.filename, { type: 'application/pdf' });
@@ -69,6 +99,55 @@ export default function ReadPage() {
   }, [id]);
 
   const handleBack = useCallback(() => router.push('/'), [router]);
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    onZoomIn: viewMode === 'text'
+      ? () => setFontSize((s) => Math.min(MAX_FONT, s + STEP))
+      : undefined,
+    onZoomOut: viewMode === 'text'
+      ? () => setFontSize((s) => Math.max(MIN_FONT, s - STEP))
+      : undefined,
+    onEscape: handleBack,
+    enabled: !loading && !error,
+  });
+
+  // Export text
+  const handleExportText = useCallback(() => {
+    const text = blocks
+      .map((block) => {
+        if (block.type === 'heading') return block.text.toUpperCase();
+        if (block.type === 'paragraph') return block.text;
+        if (block.type === 'table') {
+          const header = block.headers.join(' | ');
+          const rows = block.rows.map((row) => row.join(' | ')).join('\n');
+          return `${header}\n${rows}`;
+        }
+        return '';
+      })
+      .join('\n\n');
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'document.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [blocks]);
+
+  // Rename PDF
+  const handleRename = useCallback(async (newName: string) => {
+    try {
+      await fetch(`/api/pdfs/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newName }),
+      });
+      setPdfTitle(newName);
+    } catch {
+      // Ignore errors
+    }
+  }, [id]);
 
   if (loading) {
     return (
@@ -143,7 +222,34 @@ export default function ReadPage() {
             </button>
           </div>
 
-          {viewMode === 'text' ? (
+          <div className="flex items-center gap-1">
+            <BookmarkButton pdfId={id} currentPage={1} />
+
+            {viewMode === 'text' && blocks.length > 0 && (
+              <PdfSearch blocks={blocks} />
+            )}
+
+            {viewMode === 'text' && blocks.length > 0 && (
+              <button
+                onClick={handleExportText}
+                className="flex size-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-muted hover:text-muted-medium active:scale-95"
+                aria-label="Export text"
+                title="Export as .txt"
+              >
+                <Download className="size-4" strokeWidth={1.5} />
+              </button>
+            )}
+
+            <button
+              onClick={() => setShowRename(true)}
+              className="flex size-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-muted hover:text-muted-medium active:scale-95"
+              aria-label="Rename PDF"
+              title="Rename"
+            >
+              <Pencil className="size-4" strokeWidth={1.5} />
+            </button>
+
+            {viewMode === 'text' ? (
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setFontSize(Math.max(MIN_FONT, fontSize - STEP))}
@@ -169,13 +275,21 @@ export default function ReadPage() {
             <div className="w-[76px]" />
           )}
         </div>
+        </div>
       </header>
 
       {viewMode === 'text' ? (
         <ReaderView blocks={blocks} fontSize={fontSize} />
       ) : pdfBytes ? (
-        <PdfViewer data={pdfBytes} />
+        <PdfViewer data={pdfBytes} pdfId={id} />
       ) : null}
+
+      <RenameModal
+        open={showRename}
+        currentName={pdfTitle}
+        onRename={handleRename}
+        onCancel={() => setShowRename(false)}
+      />
     </div>
   );
 }

@@ -46,7 +46,7 @@ export async function PATCH(
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id } = await params;
-    const { folderId } = await request.json();
+    const body = await request.json();
 
     const [pdf] = await db()
       .select({ userId: pdfs.userId })
@@ -56,7 +56,15 @@ export async function PATCH(
     if (!pdf) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     if (pdf.userId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    await db().update(pdfs).set({ folderId: folderId || null }).where(eq(pdfs.id, id));
+    const updates: Record<string, unknown> = {};
+    if (body.folderId !== undefined) updates.folderId = body.folderId || null;
+    if (body.title !== undefined) updates.title = body.title;
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ error: 'No updates provided' }, { status: 400 });
+    }
+
+    await db().update(pdfs).set(updates).where(eq(pdfs.id, id));
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: 'Failed to move PDF' }, { status: 500 });

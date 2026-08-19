@@ -3,6 +3,7 @@ import { Merriweather } from "next/font/google";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { ToastProvider } from "@/hooks/useToast";
 import { PwaProvider } from "@/components/PwaProvider";
+import { DarkModeProvider } from "@/components/DarkModeProvider";
 import "./globals.css";
 
 const merriweather = Merriweather({
@@ -34,8 +35,10 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col bg-white">
         <AuthProvider>
           <ToastProvider>
-            {children}
-            <PwaProvider />
+            <DarkModeProvider>
+              {children}
+              <PwaProvider />
+            </DarkModeProvider>
           </ToastProvider>
         </AuthProvider>
       </body>

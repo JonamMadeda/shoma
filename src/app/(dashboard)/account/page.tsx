@@ -3,11 +3,14 @@
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
-import { LogOut, User, Mail, Calendar } from 'lucide-react';
+import { useDarkMode } from '@/components/DarkModeProvider';
+import { LogOut, User, Mail, Calendar, Sun, Moon, Monitor } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function AccountPage() {
   const { user, signOut } = useAuth();
   const router = useRouter();
+  const { theme, setTheme } = useDarkMode();
 
   const handleSignOut = async () => {
     await signOut();
@@ -82,6 +85,33 @@ export default function AccountPage() {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-border bg-white p-5">
+          <h2 className="mb-4 text-sm font-semibold text-foreground">
+            Appearance
+          </h2>
+          <div className="flex gap-2">
+            {([
+              { value: 'light' as const, icon: Sun, label: 'Light' },
+              { value: 'dark' as const, icon: Moon, label: 'Dark' },
+              { value: 'system' as const, icon: Monitor, label: 'System' },
+            ]).map(({ value, icon: Icon, label }) => (
+              <button
+                key={value}
+                onClick={() => setTheme(value)}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all',
+                  theme === value
+                    ? 'border-accent bg-accent-light text-accent'
+                    : 'border-border text-muted hover:bg-surface-muted'
+                )}
+              >
+                <Icon className="size-4" strokeWidth={1.5} />
+                {label}
+              </button>
+            ))}
           </div>
         </div>
 
