@@ -167,7 +167,7 @@ export default function LibraryPage() {
 
   return (
     <>
-      <div className="mx-auto max-w-5xl px-3 py-6 sm:px-6 sm:py-10">
+      <main className="mx-auto w-full max-w-6xl">
         <LibraryHeader
           pdfCount={pdfs.length}
           folderCount={folders.length}
@@ -197,10 +197,10 @@ export default function LibraryPage() {
         ) : search && !hasSearchResults ? (
           <EmptyState type="no-results" onClearSearch={() => setSearch('')} />
         ) : (
-          <div className="space-y-5 sm:space-y-6">
+          <div className="space-y-8 sm:space-y-10">
             {hasFolders && (
-              <section>
-                <div className="mb-2 flex items-center gap-2 sm:mb-3">
+              <section className="rounded-2xl border border-border bg-surface-muted/30 p-3 sm:p-4">
+                <div className="mb-3 flex items-center gap-2 sm:mb-4">
                   <div className="h-4 w-1 rounded-full bg-accent" />
                   <h2 className="text-xs font-bold uppercase tracking-wider text-foreground sm:text-muted">
                     Folders
@@ -209,7 +209,7 @@ export default function LibraryPage() {
                     {folders.length}
                   </span>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {folders.map((folder) => (
                     <FolderSection
                       key={folder.id}
@@ -236,8 +236,8 @@ export default function LibraryPage() {
             )}
 
             {hasUncategorized && (
-              <section>
-                <div className="mb-2 flex items-center gap-2 sm:mb-3">
+              <section className="rounded-2xl border border-border bg-surface-muted/30 p-3 sm:p-4">
+                <div className="mb-3 flex items-center gap-2 sm:mb-4">
                   <div className="h-4 w-1 rounded-full bg-accent" />
                   <h2 className="text-xs font-bold uppercase tracking-wider text-foreground sm:text-muted">
                     All Documents
@@ -251,7 +251,7 @@ export default function LibraryPage() {
                   role={selectMode ? 'listbox' : undefined}
                   aria-label={selectMode ? 'Select PDFs' : undefined}
                 >
-                  <div className="divide-y divide-border-subtle px-3">
+                  <div className="divide-y divide-border-subtle px-3 sm:px-4">
                     {displayedUncategorized.map((pdf) => (
                       <PdfCard
                         key={pdf.id}
@@ -285,7 +285,7 @@ export default function LibraryPage() {
             )}
           </div>
         )}
-      </div>
+      </main>
 
       {selectMode && selectedIds.size > 0 && (
         <MultiSelectActionBar

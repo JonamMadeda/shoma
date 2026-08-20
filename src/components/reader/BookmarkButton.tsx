@@ -25,6 +25,7 @@ export function BookmarkButton({ pdfId, currentPage }: BookmarkButtonProps) {
       addBookmark(currentPage, note);
       setNote('');
     }
+    setShowPanel(false);
   }, [bookmarked, existingBookmark, currentPage, note, addBookmark, removeBookmark]);
 
   return (
@@ -62,6 +63,7 @@ export function BookmarkButton({ pdfId, currentPage }: BookmarkButtonProps) {
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Add a note (optional)"
+            onKeyDown={(event) => event.stopPropagation()}
             className="mb-2 w-full rounded-lg border border-border bg-surface-muted px-3 py-2 text-sm text-foreground placeholder:text-muted outline-none focus:ring-2 focus:ring-accent/30"
           />
           <button

@@ -36,39 +36,44 @@ export default function UploadPage() {
   );
 
   return (
-    <div className="mx-auto max-w-2xl py-8 sm:py-12">
-      <div className="mb-10 text-center">
-        <div className="mx-auto mb-5 flex size-14 items-center justify-center rounded-2xl bg-accent-light shadow-sm">
+    <div className="mx-auto max-w-4xl">
+      <div className="mb-6 rounded-2xl border border-border bg-white p-5 shadow-sm sm:mb-8 sm:p-7">
+        <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-accent-light shadow-sm">
           <Upload className="size-7 text-accent" strokeWidth={1.5} />
-        </div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
           Upload a PDF
-        </h1>
-        <p className="mt-2 text-sm text-muted">
+            </h1>
+            <p className="mt-2 max-w-lg text-sm text-muted">
           Extract and read your PDF content in a clean, distraction-free layout
-        </p>
+            </p>
+          </div>
+          <div className="rounded-xl bg-surface-muted px-3 py-2 text-xs font-medium text-muted-medium">PDF · up to 50 MB</div>
+        </div>
       </div>
 
       {user ? (
         <>
-          <UploadZone onFileSelect={handleFileSelect} isLoading={uploading} />
+          <div className="rounded-2xl border border-border bg-white p-3 shadow-sm sm:p-5"><UploadZone onFileSelect={handleFileSelect} isLoading={uploading} /></div>
 
           <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-            <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-white p-4 text-center">
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-white p-4 text-center shadow-sm">
               <div className="flex size-9 items-center justify-center rounded-lg bg-accent-light">
                 <FileText className="size-4 text-accent" strokeWidth={1.5} />
               </div>
               <p className="text-xs font-medium text-foreground">PDF Only</p>
               <p className="text-[11px] text-muted">Up to 50 MB</p>
             </div>
-            <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-white p-4 text-center">
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-white p-4 text-center shadow-sm">
               <div className="flex size-9 items-center justify-center rounded-lg bg-accent-light">
                 <BookOpen className="size-4 text-accent" strokeWidth={1.5} />
               </div>
               <p className="text-xs font-medium text-foreground">Clean Reader</p>
               <p className="text-[11px] text-muted">Distraction-free</p>
             </div>
-            <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-white p-4 text-center">
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-white p-4 text-center shadow-sm">
               <div className="flex size-9 items-center justify-center rounded-lg bg-accent-light">
                 <CheckCircle2 className="size-4 text-accent" strokeWidth={1.5} />
               </div>

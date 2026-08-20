@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Minus, Plus, FileText, Image, Download, Pencil } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, FileText, Image, Download, Pencil, List, Settings, Sun, Moon, MoreHorizontal } from 'lucide-react';
 import { ReaderView } from '@/components/reader/ReaderView';
 import { PdfViewer } from '@/components/reader/PdfViewer';
 import { PdfSearch } from '@/components/reader/PdfSearch';
@@ -14,6 +14,7 @@ import { useOrientation } from '@/hooks/useOrientation';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { cachePdf, getCachedPdf } from '@/lib/offline-cache';
 import { cn } from '@/lib/utils';
+import { useDarkMode } from '@/components/DarkModeProvider';
 
 const MIN_FONT = 14;
 const MAX_FONT = 32;
@@ -25,30 +26,25 @@ export default function ReadPage() {
   const [blocks, setBlocks] = useState<ContentBlock[]>([]);
   const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null);
   const [fontSize, setFontSize] = useState(18);
-  const [viewMode, setViewMode] = useState<'text' | 'pdf'>('text');
+  const [viewMode, setViewMode] = useState<'text' | 'pdf'>('pdf');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pdfTitle, setPdfTitle] = useState<string>('');
   const [showRename, setShowRename] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeSearchMatch, setActiveSearchMatch] = useState(-1);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [tocOpen, setTocOpen] = useState(false);
+  const [textWidth, setTextWidth] = useState<'normal' | 'wide'>('normal');
+  const [lineHeight, setLineHeight] = useState(1.75);
+  const [tocTarget, setTocTarget] = useState<number | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { resolvedTheme, setTheme } = useDarkMode();
   const orientation = useOrientation();
   const isLandscape = orientation === 'landscape';
 
-  // Auto-hide header in landscape
   const [headerVisible, setHeaderVisible] = useState(true);
-  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const resetHideTimer = useCallback(() => {
-    if (!isLandscape) return;
-    setHeaderVisible(true);
-    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    hideTimerRef.current = setTimeout(() => setHeaderVisible(false), 3000);
-  }, [isLandscape]);
-
-  useEffect(() => {
-    if (isLandscape) resetHideTimer();
-    else setHeaderVisible(true);
-    return () => { if (hideTimerRef.current) clearTimeout(hideTimerRef.current); };
-  }, [isLandscape, resetHideTimer]);
 
   // Load PDF
   useEffect(() => {
@@ -99,6 +95,40 @@ export default function ReadPage() {
   }, [id]);
 
   const handleBack = useCallback(() => router.push('/'), [router]);
+  const handleSearchMatch = useCallback((index: number) => setActiveSearchMatch(index), []);
+  const handleReaderScroll = useCallback((direction: 'up' | 'down') => {
+    setHeaderVisible(direction === 'up');
+  }, []);
+  const closeReaderPanels = useCallback(() => {
+    if (settingsOpen || tocOpen) {
+      setSettingsOpen(false);
+      setTocOpen(false);
+      return;
+    }
+    handleBack();
+  }, [handleBack, settingsOpen, tocOpen]);
+  const headings = blocks.flatMap((block, index) => block.type === 'heading' ? [{ ...block, index }] : []);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('reader-preferences');
+      if (!saved) return;
+      const preferences = JSON.parse(saved) as { fontSize?: number; lineHeight?: number; textWidth?: 'normal' | 'wide' };
+      if (preferences.fontSize) setFontSize(preferences.fontSize);
+      if (preferences.lineHeight) setLineHeight(preferences.lineHeight);
+      if (preferences.textWidth) setTextWidth(preferences.textWidth);
+    } catch {
+      // Ignore unavailable or malformed local preferences.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('reader-preferences', JSON.stringify({ fontSize, lineHeight, textWidth }));
+    } catch {
+      // Local persistence is optional.
+    }
+  }, [fontSize, lineHeight, textWidth]);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -108,7 +138,7 @@ export default function ReadPage() {
     onZoomOut: viewMode === 'text'
       ? () => setFontSize((s) => Math.max(MIN_FONT, s - STEP))
       : undefined,
-    onEscape: handleBack,
+    onEscape: closeReaderPanels,
     enabled: !loading && !error,
   });
 
@@ -151,7 +181,7 @@ export default function ReadPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-dvh flex-col">
         <div className="flex flex-1 items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <div className="size-8 animate-spin rounded-full border-[3px] border-border border-t-accent" />
@@ -164,7 +194,7 @@ export default function ReadPage() {
 
   if (error) {
     return (
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-dvh flex-col">
         <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4">
           <p className="text-sm text-red-500">{error}</p>
           <Button variant="secondary" onClick={() => router.push('/')}>Back to Library</Button>
@@ -174,59 +204,66 @@ export default function ReadPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-white">
-      {/* Tap zone to reveal header in landscape */}
-      {isLandscape && !headerVisible && (
+    <div className="relative flex h-dvh min-h-0 flex-col overflow-hidden bg-white">
+      {/* A small reveal zone keeps the navigation reachable without changing the reading position. */}
+      {!headerVisible && (
         <div
           className="fixed top-0 left-0 right-0 z-50 h-8"
-          onPointerDown={() => { setHeaderVisible(true); resetHideTimer(); }}
+          onPointerDown={() => setHeaderVisible(true)}
         />
       )}
 
-      {/* Header — auto-hides in landscape */}
+      {/* Header follows the reading direction. */}
       <header
         className={cn(
-          'sticky top-0 z-40 border-b border-border/80 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 transition-all duration-300',
-          isLandscape && !headerVisible && 'pointer-events-none -translate-y-full opacity-0'
+          'sticky top-0 z-40 h-14 border-b border-border/80 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 transition-all duration-300',
+          headerVisible && menuOpen ? 'overflow-visible' : 'overflow-hidden',
+          !headerVisible && 'pointer-events-none h-0 border-transparent opacity-0'
         )}
       >
-        <div className={cn('mx-auto flex h-14 items-center justify-between px-4', isLandscape ? 'max-w-full' : 'max-w-3xl')}>
+        <div className={cn('mx-auto flex h-14 w-full min-w-0 items-center justify-between gap-2 px-3 sm:px-4', isLandscape ? 'max-w-full' : 'max-w-3xl')}>
           <button
             onClick={handleBack}
-            className="flex items-center gap-1.5 py-2 text-sm font-medium text-muted-medium transition-colors hover:text-foreground active:scale-95"
+            className="flex shrink-0 items-center gap-1.5 py-2 text-sm font-medium text-muted-medium transition-colors hover:text-foreground active:scale-95"
           >
             <ArrowLeft className="size-4" strokeWidth={1.5} />
-            Library
+            <span className="hidden sm:inline">Library</span>
           </button>
 
-          <div className="flex items-center gap-1 rounded-lg border border-border bg-white p-0.5">
-            <button
-              onClick={() => setViewMode('text')}
-              className={cn(
-                'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-150',
-                viewMode === 'text' ? 'bg-accent text-white shadow-sm' : 'text-muted hover:text-foreground'
-              )}
-            >
-              <FileText className="size-3.5" strokeWidth={1.5} />
-              Text
-            </button>
+          <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-white p-0.5">
             <button
               onClick={() => setViewMode('pdf')}
               className={cn(
-                'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-150',
+                'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-all duration-150 sm:px-3',
                 viewMode === 'pdf' ? 'bg-accent text-white shadow-sm' : 'text-muted hover:text-foreground'
               )}
             >
               <Image className="size-3.5" strokeWidth={1.5} />
-              PDF
+              <span className="hidden sm:inline">PDF</span>
+            </button>
+            <button
+              onClick={() => setViewMode('text')}
+              className={cn(
+                'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-all duration-150 sm:px-3',
+                viewMode === 'text' ? 'bg-accent text-white shadow-sm' : 'text-muted hover:text-foreground'
+              )}
+            >
+              <FileText className="size-3.5" strokeWidth={1.5} />
+              <span className="hidden sm:inline">Text</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-1">
-            <BookmarkButton pdfId={id} currentPage={1} />
+          <div className="hidden min-w-0 items-center justify-end gap-1">
+            <BookmarkButton pdfId={id} currentPage={currentPage} />
+
+            {viewMode === 'text' && headings.length > 0 && (
+              <button onClick={() => setTocOpen((open) => !open)} className="flex size-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-muted hover:text-foreground" aria-label="Table of contents" title="Table of contents">
+                <List className="size-4" strokeWidth={1.5} />
+              </button>
+            )}
 
             {viewMode === 'text' && blocks.length > 0 && (
-              <PdfSearch blocks={blocks} />
+              <PdfSearch blocks={blocks} onQueryChange={setSearchQuery} onMatchFound={handleSearchMatch} />
             )}
 
             {viewMode === 'text' && blocks.length > 0 && (
@@ -250,38 +287,69 @@ export default function ReadPage() {
             </button>
 
             {viewMode === 'text' ? (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setFontSize(Math.max(MIN_FONT, fontSize - STEP))}
-                disabled={fontSize <= MIN_FONT}
-                className="flex size-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-muted hover:text-muted-medium active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
-                aria-label="Decrease font size"
-              >
-                <Minus className="size-4" strokeWidth={1.5} />
-              </button>
-              <span className="w-10 text-center text-sm font-medium text-muted-medium tabular-nums">
-                {fontSize}
-              </span>
-              <button
-                onClick={() => setFontSize(Math.min(MAX_FONT, fontSize + STEP))}
-                disabled={fontSize >= MAX_FONT}
-                className="flex size-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-muted hover:text-muted-medium active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
-                aria-label="Increase font size"
-              >
-                <Plus className="size-4" strokeWidth={1.5} />
-              </button>
-            </div>
+            <button onClick={() => setSettingsOpen((open) => !open)} className={cn('flex size-9 items-center justify-center rounded-lg transition-colors hover:bg-surface-muted hover:text-foreground', settingsOpen && 'bg-accent-light text-accent')} aria-label="Reader settings" title="Reader settings">
+              <Settings className="size-4" strokeWidth={1.5} />
+            </button>
           ) : (
-            <div className="w-[76px]" />
+            <div className="hidden w-[76px] sm:block" />
+          )}
+        </div>
+        <div className="relative">
+          <button onClick={() => setMenuOpen((open) => !open)} className={cn('flex size-9 items-center justify-center rounded-lg text-muted hover:bg-surface-muted hover:text-foreground', menuOpen && 'bg-accent-light text-accent')} aria-label="Reader actions" aria-expanded={menuOpen}>
+            <MoreHorizontal className="size-5" />
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-full z-[60] mt-2 w-52 rounded-xl border border-border bg-white p-1.5 shadow-xl">
+              <div className="flex items-center gap-1 border-b border-border px-1 pb-1.5">
+                <BookmarkButton pdfId={id} currentPage={currentPage} />
+                {viewMode === 'text' && blocks.length > 0 && <PdfSearch blocks={blocks} onQueryChange={setSearchQuery} onMatchFound={handleSearchMatch} />}
+                {viewMode === 'text' && headings.length > 0 && <button onClick={() => { setTocOpen(true); setMenuOpen(false); }} className="flex size-9 items-center justify-center rounded-lg text-muted hover:bg-surface-muted" aria-label="Contents"><List className="size-4" /></button>}
+              </div>
+              {viewMode === 'text' && <button onClick={() => { setSettingsOpen(true); setMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground hover:bg-surface-muted"><Settings className="size-4 text-muted" />Reading settings</button>}
+              {viewMode === 'text' && <button onClick={() => { handleExportText(); setMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground hover:bg-surface-muted"><Download className="size-4 text-muted" />Export text</button>}
+              <button onClick={() => { setShowRename(true); setMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground hover:bg-surface-muted"><Pencil className="size-4 text-muted" />Rename document</button>
+            </div>
           )}
         </div>
         </div>
       </header>
 
+      {viewMode === 'text' && tocOpen && (
+        <aside className="absolute left-3 top-16 z-30 max-h-[calc(100dvh-5rem)] w-72 overflow-y-auto rounded-xl border border-border bg-white p-2 shadow-xl">
+          <p className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted">Contents</p>
+          {headings.map((heading) => (
+            <button key={heading.index} onClick={() => { setTocTarget(heading.index); setTocOpen(false); }} className="block w-full rounded-lg px-2 py-2 text-left text-sm text-foreground hover:bg-surface-muted" style={{ paddingLeft: `${8 + (heading.level - 1) * 12}px` }}>
+              {heading.text}
+            </button>
+          ))}
+        </aside>
+      )}
+
+      {viewMode === 'text' && settingsOpen && (
+        <aside className="absolute right-3 top-16 z-30 w-72 rounded-xl border border-border bg-white p-4 shadow-xl">
+          <p className="mb-3 text-sm font-semibold text-foreground">Reading settings</p>
+          <div className="mb-4 flex items-center justify-between"><span className="text-sm text-muted-medium">Text size</span><div className="flex items-center gap-2"><button onClick={() => setFontSize((size) => Math.max(MIN_FONT, size - STEP))} className="rounded-lg border border-border p-1.5" aria-label="Decrease font size"><Minus className="size-4" /></button><span className="w-8 text-center text-sm tabular-nums">{fontSize}</span><button onClick={() => setFontSize((size) => Math.min(MAX_FONT, size + STEP))} className="rounded-lg border border-border p-1.5" aria-label="Increase font size"><Plus className="size-4" /></button></div></div>
+          <label className="mb-4 block text-sm text-muted-medium">Line spacing<input type="range" min="1.4" max="2.1" step="0.1" value={lineHeight} onChange={(event) => setLineHeight(Number(event.target.value))} className="mt-2 w-full accent-accent" /></label>
+          <div className="mb-4"><p className="mb-2 text-sm text-muted-medium">Text width</p><div className="grid grid-cols-2 gap-2"><button onClick={() => setTextWidth('normal')} className={cn('rounded-lg border px-3 py-2 text-sm', textWidth === 'normal' && 'border-accent bg-accent-light text-accent')}>Comfort</button><button onClick={() => setTextWidth('wide')} className={cn('rounded-lg border px-3 py-2 text-sm', textWidth === 'wide' && 'border-accent bg-accent-light text-accent')}>Wide</button></div></div>
+          <div><p className="mb-2 text-sm text-muted-medium">Appearance</p><div className="grid grid-cols-2 gap-2"><button onClick={() => setTheme('light')} className={cn('flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm', resolvedTheme === 'light' && 'border-accent bg-accent-light text-accent')}><Sun className="size-4" />Light</button><button onClick={() => setTheme('dark')} className={cn('flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm', resolvedTheme === 'dark' && 'border-accent bg-accent-light text-accent')}><Moon className="size-4" />Dark</button></div></div>
+        </aside>
+      )}
+
       {viewMode === 'text' ? (
-        <ReaderView blocks={blocks} fontSize={fontSize} />
+        <ReaderView
+          blocks={blocks}
+          fontSize={fontSize}
+          searchQuery={searchQuery}
+          activeMatch={activeSearchMatch}
+          onActivePageChange={setCurrentPage}
+          onScrollDirection={handleReaderScroll}
+          textWidth={textWidth}
+          lineHeight={lineHeight}
+          scrollToBlock={tocTarget}
+          headerVisible={headerVisible}
+        />
       ) : pdfBytes ? (
-        <PdfViewer data={pdfBytes} pdfId={id} />
+        <PdfViewer data={pdfBytes} pdfId={id} onPageChange={setCurrentPage} onScrollDirection={handleReaderScroll} />
       ) : null}
 
       <RenameModal

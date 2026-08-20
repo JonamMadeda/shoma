@@ -49,10 +49,10 @@ export function SearchBar({ search, sort, onSearchChange, onSortChange }: Search
   }, []);
 
   return (
-    <div className="mb-5 sm:mb-6">
+    <div className="mb-7 rounded-2xl border border-border bg-white p-2 shadow-sm sm:mb-9 sm:p-3">
       <div className="flex items-center gap-2 sm:gap-3">
         <div className="group relative flex-1">
-          <div className="flex items-center gap-2.5 rounded-xl border border-border bg-white px-3 py-2.5 transition-all duration-200 focus-within:border-accent focus-within:shadow-md focus-within:shadow-accent/5 focus-within:ring-2 focus-within:ring-accent/20 sm:px-4 sm:py-3">
+          <div className="flex items-center gap-2.5 rounded-xl bg-surface-muted/70 px-3 py-2.5 transition-all duration-200 focus-within:bg-white focus-within:ring-2 focus-within:ring-accent/20 sm:px-4 sm:py-3">
             <Search className="size-4 shrink-0 text-muted transition-colors duration-200 group-focus-within:text-accent" strokeWidth={1.5} />
             <input
               id="library-search"

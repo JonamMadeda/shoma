@@ -2,18 +2,21 @@ import type { RawLine, RawPage } from './pdf-parser';
 
 export interface TableBlock {
   type: 'table';
+  page: number;
   headers: string[];
   rows: string[][];
 }
 
 export interface HeadingBlock {
   type: 'heading';
+  page: number;
   level: 1 | 2 | 3;
   text: string;
 }
 
 export interface ParagraphBlock {
   type: 'paragraph';
+  page: number;
   text: string;
 }
 
@@ -130,7 +133,8 @@ function extractCellText(line: RawLine, columns: number[][]): string[] {
 
 function buildTable(
   lines: RawLine[],
-  startIdx: number
+  startIdx: number,
+  page: number
 ): { table: TableBlock; endIdx: number } {
   const columns = extractTableColumns(lines[startIdx]);
   const headers = extractCellText(lines[startIdx], columns);
@@ -146,7 +150,7 @@ function buildTable(
   }
 
   return {
-    table: { type: 'table', headers, rows },
+    table: { type: 'table', page, headers, rows },
     endIdx: endIdx - 1,
   };
 }
@@ -181,7 +185,7 @@ export function formatContent(pages: RawPage[]): ContentBlock[] {
       }
 
       if (tableStarts.has(i)) {
-        const { table, endIdx } = buildTable(lines, i);
+        const { table, endIdx } = buildTable(lines, i, page.pageNum);
         blocks.push(table);
         i = endIdx + 1;
         continue;
@@ -189,7 +193,7 @@ export function formatContent(pages: RawPage[]): ContentBlock[] {
 
       const headingLevel = detectHeadingLevel(line, bodySize);
       if (headingLevel) {
-        blocks.push({ type: 'heading', level: headingLevel, text: line.text.trim() });
+        blocks.push({ type: 'heading', page: page.pageNum, level: headingLevel, text: line.text.trim() });
         i++;
         continue;
       }
@@ -207,11 +211,12 @@ export function formatContent(pages: RawPage[]): ContentBlock[] {
       }
       blocks.push({
         type: 'paragraph',
+        page: page.pageNum,
         text: cleanParagraph(paraLines.join('\n')),
       });
     }
 
-    blocks.push({ type: 'paragraph', text: '' });
+    blocks.push({ type: 'paragraph', page: page.pageNum, text: '' });
   }
 
   return blocks.filter(

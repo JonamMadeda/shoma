@@ -19,14 +19,14 @@ export default function AccountPage() {
 
   if (!user) {
     return (
-      <div className="mx-auto max-w-lg py-8 sm:py-12">
+      <div className="mx-auto max-w-lg">
         <p className="text-sm text-muted">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-lg py-6 sm:py-10">
+    <div className="mx-auto max-w-lg">
       <div className="mb-8">
         <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
           Account
@@ -92,7 +92,7 @@ export default function AccountPage() {
           <h2 className="mb-4 text-sm font-semibold text-foreground">
             Appearance
           </h2>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {([
               { value: 'light' as const, icon: Sun, label: 'Light' },
               { value: 'dark' as const, icon: Moon, label: 'Dark' },
@@ -102,7 +102,7 @@ export default function AccountPage() {
                 key={value}
                 onClick={() => setTheme(value)}
                 className={cn(
-                  'flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all',
+                  'flex min-w-0 items-center justify-center gap-1.5 rounded-lg border px-2 py-2.5 text-xs font-medium transition-all sm:gap-2 sm:px-3 sm:text-sm',
                   theme === value
                     ? 'border-accent bg-accent-light text-accent'
                     : 'border-border text-muted hover:bg-surface-muted'

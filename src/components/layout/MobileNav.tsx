@@ -19,7 +19,7 @@ export function MobileNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-white/95 backdrop-blur-md lg:hidden">
-      <div className="flex items-center px-2 pb-[env(safe-area-inset-bottom)]">
+      <div className="flex min-h-16 items-center px-2 pb-[env(safe-area-inset-bottom)]">
         {tabs.map((tab) => {
           const active = tab.href === '/' ? pathname === '/' : pathname.startsWith(tab.href);
           return (

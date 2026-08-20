@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { cn } from '@/lib/utils';
-import { BookOpen, Library, Upload, Plus, ChevronRight } from 'lucide-react';
+import { BookOpen, Library, Upload, ChevronRight } from 'lucide-react';
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -29,10 +29,11 @@ export function Sidebar() {
       <div className="mx-4 border-b border-border" />
 
       <nav className="flex flex-1 flex-col gap-1 p-3">
+        <p className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-faint">Workspace</p>
         <Link
           href="/"
           className={cn(
-            'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
+            'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40',
             pathname === '/'
               ? 'bg-accent text-white shadow-sm shadow-accent/25'
               : 'text-muted hover:bg-surface-muted hover:text-foreground'
@@ -50,7 +51,7 @@ export function Sidebar() {
         <Link
           href="/upload"
           className={cn(
-            'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
+            'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40',
             pathname === '/upload'
               ? 'bg-accent text-white shadow-sm shadow-accent/25'
               : 'text-muted hover:bg-surface-muted hover:text-foreground'
@@ -64,16 +65,6 @@ export function Sidebar() {
           />
           <Upload className="size-4" strokeWidth={1.5} />
           Upload
-        </Link>
-
-        <div className="my-2 border-b border-border" />
-
-        <Link
-          href="/upload"
-          className="flex items-center gap-2.5 rounded-xl border border-dashed border-accent/30 bg-accent-light/50 px-3 py-2.5 text-sm font-medium text-accent transition-all duration-200 hover:border-accent/50 hover:bg-accent-light hover:shadow-sm hover:shadow-accent/10 active:scale-[0.98]"
-        >
-          <Plus className="size-4" strokeWidth={2} />
-          New Upload
         </Link>
       </nav>
 

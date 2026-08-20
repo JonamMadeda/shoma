@@ -45,7 +45,7 @@ export function FolderSection({
 }: FolderSectionProps) {
   return (
     <div className="group overflow-hidden rounded-xl border border-border bg-white transition-all duration-200">
-      <div className="flex items-center px-3 py-2.5 sm:px-4 sm:py-3">
+      <div className="flex items-center px-3 py-3 sm:px-4 sm:py-3.5">
         <button
           onClick={() => onToggle(folder.id)}
           className="flex min-w-0 flex-1 items-center gap-2.5 text-left sm:gap-3"

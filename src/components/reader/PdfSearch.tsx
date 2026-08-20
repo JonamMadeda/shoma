@@ -7,9 +7,10 @@ import { cn } from '@/lib/utils';
 interface PdfSearchProps {
   blocks: { type: string; text?: string; headers?: string[]; rows?: string[][] }[];
   onMatchFound?: (index: number, total: number) => void;
+  onQueryChange?: (query: string) => void;
 }
 
-export function PdfSearch({ blocks, onMatchFound }: PdfSearchProps) {
+export function PdfSearch({ blocks, onMatchFound, onQueryChange }: PdfSearchProps) {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [matches, setMatches] = useState<{ blockIndex: number; textIndex: number }[]>([]);
@@ -31,6 +32,7 @@ export function PdfSearch({ blocks, onMatchFound }: PdfSearchProps) {
   }, [blocks]);
 
   useEffect(() => {
+    onQueryChange?.(query);
     if (!query.trim()) {
       setMatches([]);
       setCurrentMatch(0);
@@ -55,17 +57,25 @@ export function PdfSearch({ blocks, onMatchFound }: PdfSearchProps) {
     setMatches(found);
     setCurrentMatch(found.length > 0 ? 0 : -1);
     onMatchFound?.(found.length > 0 ? 0 : -1, found.length);
-  }, [query, getAllText, onMatchFound]);
+  }, [query, getAllText, onMatchFound, onQueryChange]);
 
   const handleNext = useCallback(() => {
     if (matches.length === 0) return;
-    setCurrentMatch((prev) => (prev + 1) % matches.length);
-  }, [matches.length]);
+    setCurrentMatch((prev) => {
+      const next = (prev + 1) % matches.length;
+      onMatchFound?.(next, matches.length);
+      return next;
+    });
+  }, [matches.length, onMatchFound]);
 
   const handlePrev = useCallback(() => {
     if (matches.length === 0) return;
-    setCurrentMatch((prev) => (prev - 1 + matches.length) % matches.length);
-  }, [matches.length]);
+    setCurrentMatch((prev) => {
+      const next = (prev - 1 + matches.length) % matches.length;
+      onMatchFound?.(next, matches.length);
+      return next;
+    });
+  }, [matches.length, onMatchFound]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {

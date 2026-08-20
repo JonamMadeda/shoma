@@ -25,13 +25,13 @@ export function LibraryHeader({
   onExitSelectMode,
 }: LibraryHeaderProps) {
   return (
-    <div className="mb-6 sm:mb-8">
-      <div className="flex items-center justify-between gap-4">
+    <div className="mb-5 rounded-2xl border border-border bg-white p-4 shadow-sm sm:mb-7 sm:p-6">
+      <div className="flex items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-3xl">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             Your Library
           </h1>
-          <p className="mt-0.5 hidden text-sm text-muted sm:block">
+          <p className="mt-1 hidden text-sm text-muted sm:block">
             Organize and read your PDF collection
           </p>
         </div>
