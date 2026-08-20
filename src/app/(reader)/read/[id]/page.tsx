@@ -25,6 +25,9 @@ export default function ReadPage() {
   const router = useRouter();
   const [blocks, setBlocks] = useState<ContentBlock[]>([]);
   const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null);
+  const [textReady, setTextReady] = useState(false);
+  const [extracting, setExtracting] = useState(false);
+  const [textError, setTextError] = useState(false);
   const [fontSize, setFontSize] = useState(18);
   const [viewMode, setViewMode] = useState<'text' | 'pdf'>('pdf');
   const [loading, setLoading] = useState(true);
@@ -58,11 +61,6 @@ export default function ReadPage() {
           for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
           setPdfBytes(bytes);
           setPdfTitle(cached.title || cached.filename.replace(/\.pdf$/i, ''));
-          const { extractPages } = await import('@/lib/pdf-parser');
-          const { formatContent } = await import('@/lib/content-formatter');
-          const file = new File([bytes], cached.filename, { type: 'application/pdf' });
-          const pages = await extractPages(file);
-          setBlocks(formatContent(pages));
           setLoading(false);
           return;
         }
@@ -79,12 +77,6 @@ export default function ReadPage() {
 
         // Cache for offline use
         await cachePdf(id, pdf.content, pdf.filename, pdf.title || pdf.filename);
-
-        const { extractPages } = await import('@/lib/pdf-parser');
-        const { formatContent } = await import('@/lib/content-formatter');
-        const file = new File([bytes], pdf.filename, { type: 'application/pdf' });
-        const pages = await extractPages(file);
-        setBlocks(formatContent(pages));
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load PDF');
       } finally {
@@ -107,6 +99,32 @@ export default function ReadPage() {
     }
     handleBack();
   }, [handleBack, settingsOpen, tocOpen]);
+
+  const ensureTextReady = useCallback(async () => {
+    if (textReady || extracting || !pdfBytes) return;
+    setExtracting(true);
+    setTextError(false);
+    try {
+      const file = new File([pdfBytes.buffer as ArrayBuffer], 'document.pdf', { type: 'application/pdf' });
+      const { extractPages } = await import('@/lib/pdf-parser');
+      const { formatContent } = await import('@/lib/content-formatter');
+      const pages = await extractPages(file);
+      setBlocks(formatContent(pages));
+      setTextReady(true);
+    } catch {
+      setTextError(true);
+    } finally {
+      setExtracting(false);
+    }
+  }, [extracting, pdfBytes, textReady]);
+
+  const switchToText = useCallback(() => {
+    setViewMode('text');
+    void ensureTextReady();
+  }, [ensureTextReady]);
+
+  const switchToPdf = useCallback(() => setViewMode('pdf'), []);
+
   const headings = blocks.flatMap((block, index) => block.type === 'heading' ? [{ ...block, index }] : []);
 
   useEffect(() => {
@@ -138,7 +156,7 @@ export default function ReadPage() {
     onZoomOut: viewMode === 'text'
       ? () => setFontSize((s) => Math.max(MIN_FONT, s - STEP))
       : undefined,
-    onEscape: closeReaderPanels,
+    onEscape: viewMode === 'text' ? closeReaderPanels : undefined,
     enabled: !loading && !error,
   });
 
@@ -232,7 +250,7 @@ export default function ReadPage() {
 
           <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-white p-0.5">
             <button
-              onClick={() => setViewMode('pdf')}
+              onClick={switchToPdf}
               className={cn(
                 'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-all duration-150 sm:px-3',
                 viewMode === 'pdf' ? 'bg-accent text-white shadow-sm' : 'text-muted hover:text-foreground'
@@ -242,7 +260,7 @@ export default function ReadPage() {
               <span className="hidden sm:inline">PDF</span>
             </button>
             <button
-              onClick={() => setViewMode('text')}
+              onClick={switchToText}
               className={cn(
                 'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-all duration-150 sm:px-3',
                 viewMode === 'text' ? 'bg-accent text-white shadow-sm' : 'text-muted hover:text-foreground'
@@ -336,6 +354,12 @@ export default function ReadPage() {
       )}
 
       {viewMode === 'text' ? (
+        extracting || !textReady ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-white">
+            <div className="size-8 animate-spin rounded-full border-[3px] border-border border-t-accent" />
+            <p className="text-sm text-muted">{textError ? 'Failed to extract text' : 'Extracting text...'}</p>
+          </div>
+        ) : (
         <ReaderView
           blocks={blocks}
           fontSize={fontSize}
@@ -348,6 +372,7 @@ export default function ReadPage() {
           scrollToBlock={tocTarget}
           headerVisible={headerVisible}
         />
+        )
       ) : pdfBytes ? (
         <PdfViewer data={pdfBytes} pdfId={id} onPageChange={setCurrentPage} onScrollDirection={handleReaderScroll} />
       ) : null}

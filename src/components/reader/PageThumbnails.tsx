@@ -1,15 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { PanelLeftClose, PanelLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.mjs',
-  import.meta.url
-).toString();
 
 interface PageThumbnailsProps {
   pdf: PDFDocumentProxy | null;
@@ -31,6 +25,10 @@ export function PageThumbnails({
   const containerRef = useRef<HTMLDivElement>(null);
   const renderedRef = useRef<Set<number>>(new Set());
 
+  useEffect(() => {
+    renderedRef.current.clear();
+  }, [pdf]);
+
   const renderThumbnail = useCallback(async (pageNum: number) => {
     if (!pdf || renderedRef.current.has(pageNum)) return;
     renderedRef.current.add(pageNum);
@@ -47,7 +45,7 @@ export function PageThumbnails({
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+      await page.render({ canvasContext: ctx, canvas, viewport }).promise;
     } catch {
       // Ignore render errors for thumbnails
     }

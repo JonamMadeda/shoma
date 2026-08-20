@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
-import type { PDFDocumentProxy } from 'pdfjs-dist';
+import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 import { Minus, Plus, Maximize2, ChevronsUpDown, RotateCw, Search, X, ChevronDown, ChevronUp, MoreHorizontal } from 'lucide-react';
 import { useOrientation } from '@/hooks/useOrientation';
 import { useReadingProgress } from '@/hooks/useReadingProgress';
@@ -25,6 +25,11 @@ interface PdfViewerProps {
 
 type ZoomMode = 'width' | 'page' | 'custom';
 
+const MAX_CANVAS_DIM = 8192;
+const RENDER_DEBOUNCE_MS = 120;
+const PERSIST_DEBOUNCE_MS = 500;
+const SEARCH_DEBOUNCE_MS = 300;
+
 export function PdfViewer({ data, pdfId, onPageChange, onScrollDirection }: PdfViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
@@ -43,9 +48,13 @@ export function PdfViewer({ data, pdfId, onPageChange, onScrollDirection }: PdfV
   const [renderVersion, setRenderVersion] = useState(0);
   const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const lastScrollTopRef = useRef(0);
-  const renderingRef = useRef<Set<number>>(new Set());
+  const currentPageRef = useRef(1);
+  const renderTasksRef = useRef<Map<number, RenderTask>>(new Map());
   const renderedVersionRef = useRef<Map<number, number>>(new Map());
   const hasRestoredProgressRef = useRef(false);
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const textCacheRef = useRef<Map<number, string>>(new Map());
+  const pointerRef = useRef<{ x: number; y: number; t: number } | null>(null);
   const orientation = useOrientation();
   const isLandscape = orientation === 'landscape';
   const { getProgress, saveProgress } = useReadingProgress(pdfId);
@@ -53,6 +62,10 @@ export function PdfViewer({ data, pdfId, onPageChange, onScrollDirection }: PdfV
   const [thumbnailsOpen, setThumbnailsOpen] = useState(false);
 
   const [toolbarVisible, setToolbarVisible] = useState(true);
+
+  useEffect(() => {
+    currentPageRef.current = currentPage;
+  }, [currentPage]);
 
   useEffect(() => {
     if (!viewMenuOpen) return;
@@ -73,7 +86,9 @@ export function PdfViewer({ data, pdfId, onPageChange, onScrollDirection }: PdfV
         setPdf(doc);
         setPageCount(doc.numPages);
         setCurrentPage(1);
+        currentPageRef.current = 1;
         renderedVersionRef.current.clear();
+        textCacheRef.current.clear();
         setRenderVersion((version) => version + 1);
       }
     }).catch(() => {
@@ -89,39 +104,65 @@ export function PdfViewer({ data, pdfId, onPageChange, onScrollDirection }: PdfV
   }, [data]);
 
   const renderPage = useCallback(async (pageNum: number, version: number) => {
-    if (!pdf || renderedVersionRef.current.get(pageNum) === version || renderingRef.current.has(pageNum)) return;
-    renderingRef.current.add(pageNum);
+    if (!pdf || renderedVersionRef.current.get(pageNum) === version) return;
 
+    // Supersede any in-flight render so a newer zoom/rotation wins immediately.
+    const prevTask = renderTasksRef.current.get(pageNum);
+    if (prevTask) {
+      prevTask.cancel();
+      renderTasksRef.current.delete(pageNum);
+    }
+
+    let page;
     try {
-      const page = await pdf.getPage(pageNum);
-      const baseViewport = page.getViewport({ scale: 1, rotation });
-      const container = containerRef.current;
-      if (!container) return;
-      const availableWidth = Math.max(1, container.clientWidth - (isLandscape ? 8 : 32));
-      const widthScale = availableWidth / baseViewport.width;
-      const pageScale = Math.min(widthScale, Math.max(1, (container.clientHeight - 32) / baseViewport.height));
-      const scale = zoomMode === 'width'
-        ? widthScale
-        : zoomMode === 'page'
-          ? pageScale
-          : widthScale * (zoom / 100);
-      const pixelRatio = window.devicePixelRatio || 1;
-      const viewport = page.getViewport({ scale: scale * pixelRatio, rotation });
-      const canvas = document.getElementById(`pdf-page-${pageNum}`) as HTMLCanvasElement | null;
-      if (!canvas) return;
+      page = await pdf.getPage(pageNum);
+    } catch {
+      return;
+    }
+    if (renderedVersionRef.current.get(pageNum) === version) return;
 
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      canvas.style.width = `${viewport.width / pixelRatio}px`;
-      canvas.style.height = `${viewport.height / pixelRatio}px`;
+    const container = containerRef.current;
+    if (!container) return;
+    const availableWidth = Math.max(1, container.clientWidth - (isLandscape ? 8 : 32));
+    const baseViewport = page.getViewport({ scale: 1, rotation });
+    const widthScale = availableWidth / baseViewport.width;
+    const pageScale = Math.min(widthScale, Math.max(1, (container.clientHeight - 32) / baseViewport.height));
+    const scale = zoomMode === 'width'
+      ? widthScale
+      : zoomMode === 'page'
+        ? pageScale
+        : widthScale * (zoom / 100);
+    const pixelRatio = window.devicePixelRatio || 1;
 
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
+    // Bound the backing store so high zoom + hi-DPI can't blow up memory.
+    const renderScale = Math.min(
+      scale * pixelRatio,
+      MAX_CANVAS_DIM / baseViewport.width,
+      MAX_CANVAS_DIM / baseViewport.height
+    );
+    const logicalViewport = page.getViewport({ scale, rotation });
+    const viewport = page.getViewport({ scale: renderScale, rotation });
+    const canvas = document.getElementById(`pdf-page-${pageNum}`) as HTMLCanvasElement | null;
+    if (!canvas) return;
 
-      await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    canvas.style.width = `${logicalViewport.width}px`;
+    canvas.style.height = `${logicalViewport.height}px`;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const renderTask = page.render({ canvasContext: ctx, canvas, viewport });
+    renderTasksRef.current.set(pageNum, renderTask);
+    try {
+      await renderTask.promise;
       renderedVersionRef.current.set(pageNum, version);
+    } catch {
+      // RenderingCancelledException means a newer version superseded this one;
+      // other errors leave the page unmarked so it retries on the next cycle.
     } finally {
-      renderingRef.current.delete(pageNum);
+      if (renderTasksRef.current.get(pageNum) === renderTask) renderTasksRef.current.delete(pageNum);
     }
   }, [pdf, isLandscape, rotation, zoom, zoomMode]);
 
@@ -131,25 +172,32 @@ export function PdfViewer({ data, pdfId, onPageChange, onScrollDirection }: PdfV
     if (!pdf) return;
     const start = Math.max(1, currentPage - 2);
     const end = Math.min(pageCount, currentPage + 2);
+    const tasks: Promise<void>[] = [];
     for (let i = start; i <= end; i++) {
-      await renderPage(i, renderVersion);
+      tasks.push(renderPage(i, renderVersion));
     }
+    await Promise.allSettled(tasks);
   }, [currentPage, pdf, pageCount, renderPage, renderVersion]);
 
   useEffect(() => {
-    renderVisiblePages().then(() => {
-      // Restore once; rerendering for a zoom or resize must not jump the reader back.
-      const progress = !hasRestoredProgressRef.current && getProgress();
-      if (progress) {
-        const el = pageRefs.current.get(progress.page);
-        if (el) {
-          el.scrollIntoView({ behavior: 'instant' });
-          setCurrentPage(progress.page);
-          onPageChange?.(progress.page);
+    const timer = setTimeout(() => {
+      void renderVisiblePages().then(() => {
+        // Restore once; rerendering for a zoom or resize must not jump the reader back.
+        const progress = !hasRestoredProgressRef.current && getProgress();
+        if (progress) {
+          const el = pageRefs.current.get(progress.page);
+          if (el) {
+            el.scrollIntoView({ behavior: 'instant' });
+            currentPageRef.current = progress.page;
+            setCurrentPage(progress.page);
+            setPageInput(String(progress.page));
+            onPageChange?.(progress.page);
+          }
         }
-      }
-      hasRestoredProgressRef.current = true;
-    });
+        hasRestoredProgressRef.current = true;
+      });
+    }, RENDER_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
   }, [renderVisiblePages, getProgress, onPageChange]);
 
   useEffect(() => {
@@ -165,6 +213,24 @@ export function PdfViewer({ data, pdfId, onPageChange, onScrollDirection }: PdfV
     const container = containerRef.current;
     if (!container) return;
 
+    const findCurrentPage = (scrollTop: number): number => {
+      const threshold = scrollTop + 100;
+      let low = 1;
+      let high = pageCount;
+      let best = 1;
+      while (low <= high) {
+        const mid = (low + high) >> 1;
+        const el = pageRefs.current.get(mid);
+        if (el && el.offsetTop <= threshold) {
+          best = mid;
+          low = mid + 1;
+        } else {
+          high = mid - 1;
+        }
+      }
+      return best;
+    };
+
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
       const scrollDelta = scrollTop - lastScrollTopRef.current;
@@ -175,26 +241,29 @@ export function PdfViewer({ data, pdfId, onPageChange, onScrollDirection }: PdfV
         if (direction === 'down') setThumbnailsOpen(false);
         lastScrollTopRef.current = scrollTop;
       }
-      let page = 1;
-      for (let i = 1; i <= pageCount; i++) {
-        const el = pageRefs.current.get(i);
-        if (el && el.offsetTop <= scrollTop + 100) page = i;
+      const page = findCurrentPage(scrollTop);
+      if (page !== currentPageRef.current) {
+        currentPageRef.current = page;
+        setCurrentPage(page);
+        setPageInput(String(page));
+        onPageChange?.(page);
       }
-      setCurrentPage(page);
-      setPageInput(String(page));
-      onPageChange?.(page);
-      // Track page read
-      trackPage(page);
-
-      // Save progress
-      const scrollPercent = scrollHeight > clientHeight
-        ? Math.round((scrollTop / (scrollHeight - clientHeight)) * 100)
-        : 0;
-      saveProgress(page, scrollPercent);
+      // Persist progress and stats at most every PERSIST_DEBOUNCE_MS instead of per frame.
+      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+      persistTimerRef.current = setTimeout(() => {
+        trackPage(page);
+        const scrollPercent = scrollHeight > clientHeight
+          ? Math.round((scrollTop / (scrollHeight - clientHeight)) * 100)
+          : 0;
+        saveProgress(page, scrollPercent);
+      }, PERSIST_DEBOUNCE_MS);
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    };
   }, [pageCount, onPageChange, onScrollDirection, saveProgress, trackPage]);
 
   // Touch: pinch-to-zoom only
@@ -209,14 +278,12 @@ export function PdfViewer({ data, pdfId, onPageChange, onScrollDirection }: PdfV
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2) {
-      e.preventDefault();
       touchRef.current = { dist: getTouchDist(e.touches), zoom };
     }
   }, [zoom]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2 && touchRef.current) {
-      e.preventDefault();
       const newDist = getTouchDist(e.touches);
       const ratio = newDist / touchRef.current.dist;
       const newZoom = Math.max(50, Math.min(300, Math.round(touchRef.current.zoom * ratio)));
@@ -226,19 +293,29 @@ export function PdfViewer({ data, pdfId, onPageChange, onScrollDirection }: PdfV
   }, []);
 
   const handleTouchEnd = useCallback(() => {
-    if (touchRef.current) setRenderVersion((version) => version + 1);
     touchRef.current = null;
   }, []);
 
-  // Zoom handlers
-  const handleZoomIn = useCallback(() => { setZoomMode('custom'); setZoom((z) => Math.min(z + 25, 300)); setRenderVersion((version) => version + 1); }, []);
-  const handleZoomOut = useCallback(() => { setZoomMode('custom'); setZoom((z) => Math.max(z - 25, 50)); setRenderVersion((version) => version + 1); }, []);
-  const handleFitWidth = useCallback(() => { setZoomMode('width'); setRenderVersion((version) => version + 1); }, []);
-  const handleFitPage = useCallback(() => { setZoomMode('page'); setRenderVersion((version) => version + 1); }, []);
-  const handleRotate = useCallback(() => {
-    setRotation((value) => (value + 90) % 360);
-    setRenderVersion((version) => version + 1);
+  // Reveal the toolbar on tap without fighting the scroll auto-hide.
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    pointerRef.current = { x: e.clientX, y: e.clientY, t: performance.now() };
   }, []);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    const start = pointerRef.current;
+    pointerRef.current = null;
+    if (!start) return;
+    const dist = Math.hypot(e.clientX - start.x, e.clientY - start.y);
+    const dt = performance.now() - start.t;
+    if (dist < 10 && dt < 400) setToolbarVisible(true);
+  }, []);
+
+  // Zoom handlers
+  const handleZoomIn = useCallback(() => { setZoomMode('custom'); setZoom((z) => Math.min(z + 25, 300)); }, []);
+  const handleZoomOut = useCallback(() => { setZoomMode('custom'); setZoom((z) => Math.max(z - 25, 50)); }, []);
+  const handleFitWidth = useCallback(() => setZoomMode('width'), []);
+  const handleFitPage = useCallback(() => setZoomMode('page'), []);
+  const handleRotate = useCallback(() => setRotation((value) => (value + 90) % 360), []);
 
   const handlePageSelect = useCallback((page: number) => {
     const el = pageRefs.current.get(page);
@@ -253,19 +330,40 @@ export function PdfViewer({ data, pdfId, onPageChange, onScrollDirection }: PdfV
 
   useEffect(() => {
     let cancelled = false;
-    async function search() {
+    const timer = setTimeout(async () => {
       const query = searchQuery.trim().toLocaleLowerCase();
-      if (!pdf || !query) { setSearchMatches([]); return; }
+      if (!pdf || !query) {
+        if (!cancelled) {
+          setSearchMatches([]);
+          setActiveMatch(0);
+        }
+        return;
+      }
       const matches: number[] = [];
       for (let page = 1; page <= pageCount; page++) {
-        const content = await pdf.getPage(page).then((item) => item.getTextContent());
-        if (content.items.some((item) => 'str' in item && item.str.toLocaleLowerCase().includes(query))) matches.push(page);
+        if (cancelled) return;
+        let text = textCacheRef.current.get(page);
+        if (text === undefined) {
+          try {
+            const content = await pdf.getPage(page).then((item) => item.getTextContent());
+            text = content.items.map((item) => ('str' in item ? item.str : '')).join(' ');
+            textCacheRef.current.set(page, text);
+          } catch {
+            text = '';
+          }
+        }
+        if (text.toLocaleLowerCase().includes(query)) matches.push(page);
       }
-      if (!cancelled) { setSearchMatches(matches); setActiveMatch(0); if (matches[0]) handlePageSelect(matches[0]); }
-    }
-    void search();
-    return () => { cancelled = true; };
-  }, [handlePageSelect, pageCount, pdf, searchQuery]);
+      if (!cancelled) {
+        setSearchMatches(matches);
+        setActiveMatch(0);
+      }
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [pageCount, pdf, searchQuery]);
 
   const moveSearchMatch = useCallback((direction: 1 | -1) => {
     if (!searchMatches.length) return;
@@ -281,6 +379,12 @@ export function PdfViewer({ data, pdfId, onPageChange, onScrollDirection }: PdfV
     onZoomOut: handleZoomOut,
     onNextPage: () => handlePageSelect(Math.min(pageCount, currentPage + 1)),
     onPrevPage: () => handlePageSelect(Math.max(1, currentPage - 1)),
+    onEscape: () => {
+      setSearchOpen(false);
+      setSearchQuery('');
+      setThumbnailsOpen(false);
+      setViewMenuOpen(false);
+    },
     enabled: pageCount > 0,
   });
 
@@ -290,7 +394,8 @@ export function PdfViewer({ data, pdfId, onPageChange, onScrollDirection }: PdfV
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      onPointerDown={() => setToolbarVisible(true)}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
     >
       <div
         className={cn(
@@ -334,10 +439,18 @@ export function PdfViewer({ data, pdfId, onPageChange, onScrollDirection }: PdfV
         </form>
         <div ref={viewMenuRef} className="relative sm:hidden"><button onClick={() => setViewMenuOpen((open) => !open)} className="flex size-8 items-center justify-center rounded-lg text-muted hover:bg-surface-muted" aria-label="PDF view options"><MoreHorizontal className="size-4" /></button>{viewMenuOpen && <div className="absolute right-0 top-full z-50 mt-2 w-44 rounded-xl border border-border bg-white p-1.5 shadow-xl"><button onClick={() => { handleFitWidth(); setViewMenuOpen(false); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-muted"><Maximize2 className="size-4" />Fit width</button><button onClick={() => { handleFitPage(); setViewMenuOpen(false); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-muted"><ChevronsUpDown className="size-4" />Fit page</button><button onClick={() => { handleRotate(); setViewMenuOpen(false); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-muted"><RotateCw className="size-4" />Rotate</button></div>}</div>
       </div>
-      {searchOpen && <div className="absolute right-3 top-12 z-40 flex items-center gap-1 rounded-xl border border-border bg-white p-2 shadow-lg"><input autoFocus value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search PDF" className="w-40 bg-transparent px-2 py-1 text-sm outline-none" /><span className="text-xs text-muted">{searchMatches.length ? `${activeMatch + 1}/${searchMatches.length}` : '0/0'}</span><button onClick={() => moveSearchMatch(-1)} aria-label="Previous result"><ChevronUp className="size-4" /></button><button onClick={() => moveSearchMatch(1)} aria-label="Next result"><ChevronDown className="size-4" /></button><button onClick={() => { setSearchOpen(false); setSearchQuery(''); }} aria-label="Close search"><X className="size-4" /></button></div>}
+      {searchOpen && <div className="absolute right-3 top-12 z-40 flex items-center gap-1 rounded-xl border border-border bg-white p-2 shadow-lg"><input autoFocus value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} onKeyDown={(event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          if (searchMatches.length) handlePageSelect(searchMatches[activeMatch] ?? searchMatches[0]);
+        } else if (event.key === 'Escape') {
+          setSearchOpen(false);
+          setSearchQuery('');
+        }
+      }} placeholder="Search PDF" className="w-40 bg-transparent px-2 py-1 text-sm outline-none" /><span className="text-xs text-muted">{searchMatches.length ? `${activeMatch + 1}/${searchMatches.length}` : '0/0'}</span><button onClick={() => moveSearchMatch(-1)} aria-label="Previous result"><ChevronUp className="size-4" /></button><button onClick={() => moveSearchMatch(1)} aria-label="Next result"><ChevronDown className="size-4" /></button><button onClick={() => { setSearchOpen(false); setSearchQuery(''); }} aria-label="Close search"><X className="size-4" /></button></div>}
 
       {/* Pages */}
-      <div ref={containerRef} className="min-h-0 flex-1 overflow-auto" style={{ padding: isLandscape ? '4px' : '16px' }}>
+      <div ref={containerRef} className="min-h-0 flex-1 overflow-auto overscroll-contain" style={{ padding: isLandscape ? '4px' : '16px', touchAction: 'pan-x pan-y' }}>
         <div className="flex flex-col items-center" style={{ gap: isLandscape ? '2px' : '16px' }}>
           {Array.from({ length: pageCount }, (_, i) => i + 1).map((pageNum) => (
             <div
