@@ -51,7 +51,7 @@ export function SearchBar({ search, sort, onSearchChange, onSortChange }: Search
   return (
     <div className="mb-7 rounded-2xl border border-border bg-white p-2 shadow-sm sm:mb-9 sm:p-3">
       <div className="flex items-center gap-2 sm:gap-3">
-        <div className="group relative flex-1">
+        <div className="group relative min-w-0 flex-1">
           <div className="flex items-center gap-2.5 rounded-xl bg-surface-muted/70 px-3 py-2.5 transition-all duration-200 focus-within:bg-white focus-within:ring-2 focus-within:ring-accent/20 sm:px-4 sm:py-3">
             <Search className="size-4 shrink-0 text-muted transition-colors duration-200 group-focus-within:text-accent" strokeWidth={1.5} />
             <input
@@ -75,13 +75,13 @@ export function SearchBar({ search, sort, onSearchChange, onSortChange }: Search
           </div>
         </div>
 
-        <label className="relative sm:hidden">
+        <label className="relative w-[76px] shrink-0 sm:hidden">
           <span className="sr-only">Sort documents</span>
           <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" strokeWidth={1.5} />
           <select
             value={sort}
             onChange={(event) => onSortChange(event.target.value as SortKey)}
-            className="h-[42px] appearance-none rounded-xl border border-border bg-white py-2 pl-9 pr-2 text-sm font-medium text-muted-medium focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+            className="h-[42px] w-full appearance-none rounded-xl border border-border bg-white py-2 pl-9 pr-2 text-sm font-medium text-muted-medium focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
             aria-label="Sort documents"
           >
             {sortOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
