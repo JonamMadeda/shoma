@@ -36,7 +36,7 @@ export default function UploadPage() {
   );
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-4xl px-4 sm:px-6">
       <div className="mb-6 rounded-2xl border border-border bg-white p-5 shadow-sm sm:mb-8 sm:p-7">
         <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>

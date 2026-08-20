@@ -19,14 +19,14 @@ export default function AccountPage() {
 
   if (!user) {
     return (
-      <div className="mx-auto max-w-lg">
+      <div className="mx-auto max-w-lg px-4 sm:px-6">
         <p className="text-sm text-muted">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-lg">
+    <div className="mx-auto max-w-lg px-4 sm:px-6">
       <div className="mb-8">
         <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
           Account

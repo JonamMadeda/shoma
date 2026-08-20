@@ -167,7 +167,7 @@ export default function LibraryPage() {
 
   return (
     <>
-      <main className="mx-auto w-full max-w-6xl">
+      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
         <LibraryHeader
           pdfCount={pdfs.length}
           folderCount={folders.length}
@@ -285,7 +285,7 @@ export default function LibraryPage() {
             )}
           </div>
         )}
-      </main>
+      </div>
 
       {selectMode && selectedIds.size > 0 && (
         <MultiSelectActionBar
