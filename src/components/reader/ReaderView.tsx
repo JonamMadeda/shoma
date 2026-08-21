@@ -26,6 +26,7 @@ export function ReaderView({ blocks, fontSize, searchQuery = '', activeMatch = -
   const containerRef = useRef<HTMLDivElement>(null);
   const blockRefs = useRef<Map<number, HTMLElement>>(new Map());
   const lastScrollTopRef = useRef(0);
+  const scrollUpAccumRef = useRef(0);
   const [progress, setProgress] = useState(0);
   const orientation = useOrientation();
   const isLandscape = orientation === 'landscape';
@@ -59,7 +60,16 @@ export function ReaderView({ blocks, fontSize, searchQuery = '', activeMatch = -
       const { scrollTop, scrollHeight, clientHeight } = container;
       const scrollDelta = scrollTop - lastScrollTopRef.current;
       if (Math.abs(scrollDelta) > 8) {
-        onScrollDirection?.(scrollDelta > 0 ? 'down' : 'up');
+        if (scrollDelta > 0) {
+          scrollUpAccumRef.current = 0;
+          onScrollDirection?.('down');
+        } else {
+          scrollUpAccumRef.current += Math.abs(scrollDelta);
+          if (scrollUpAccumRef.current >= 120) {
+            onScrollDirection?.('up');
+            scrollUpAccumRef.current = 0;
+          }
+        }
         lastScrollTopRef.current = scrollTop;
       }
       const maxScroll = scrollHeight - clientHeight;

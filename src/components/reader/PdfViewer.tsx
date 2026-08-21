@@ -55,6 +55,7 @@ export function PdfViewer({ data, pdfId, onPageChange, onScrollDirection }: PdfV
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textCacheRef = useRef<Map<number, string>>(new Map());
   const pointerRef = useRef<{ x: number; y: number; t: number } | null>(null);
+  const scrollUpAccumRef = useRef(0);
   const orientation = useOrientation();
   const isLandscape = orientation === 'landscape';
   const { getProgress, saveProgress } = useReadingProgress(pdfId);
@@ -235,10 +236,18 @@ export function PdfViewer({ data, pdfId, onPageChange, onScrollDirection }: PdfV
       const { scrollTop, scrollHeight, clientHeight } = container;
       const scrollDelta = scrollTop - lastScrollTopRef.current;
       if (Math.abs(scrollDelta) > 8) {
-        const direction = scrollDelta > 0 ? 'down' : 'up';
-        onScrollDirection?.(direction);
-        setToolbarVisible(direction === 'up');
-        if (direction === 'down') setThumbnailsOpen(false);
+        if (scrollDelta > 0) {
+          scrollUpAccumRef.current = 0;
+          onScrollDirection?.('down');
+          setToolbarVisible(false);
+          setThumbnailsOpen(false);
+        } else {
+          scrollUpAccumRef.current += Math.abs(scrollDelta);
+          if (scrollUpAccumRef.current >= 120) {
+            onScrollDirection?.('up');
+            setToolbarVisible(true);
+          }
+        }
         lastScrollTopRef.current = scrollTop;
       }
       const page = findCurrentPage(scrollTop);
