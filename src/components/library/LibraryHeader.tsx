@@ -25,13 +25,14 @@ export function LibraryHeader({
   onExitSelectMode,
 }: LibraryHeaderProps) {
   return (
-    <div className="mb-5 rounded-2xl border border-border bg-white p-4 shadow-sm sm:mb-7 sm:p-6">
+    <>
       <div className="mb-3 flex items-center gap-2.5 sm:hidden">
         <div className="flex size-8 items-center justify-center rounded-lg bg-accent shadow-sm shadow-accent/25">
           <BookOpen className="size-4 text-white" strokeWidth={2} />
         </div>
         <span className="text-lg font-bold tracking-tight text-foreground">shooma</span>
       </div>
+      <div className="mb-5 rounded-2xl border border-border bg-white p-4 shadow-sm sm:mb-7 sm:p-6">
       <div className="flex items-center justify-between gap-3 sm:gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
@@ -106,5 +107,6 @@ export function LibraryHeader({
         </div>
       )}
     </div>
+    </>
   );
 }

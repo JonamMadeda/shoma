@@ -1,5 +1,5 @@
-const CACHE = 'shoma-v2';
-const ASSETS = ['/', '/offline'];
+const CACHE = 'shoma-v3';
+const ASSETS = ['/'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
