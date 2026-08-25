@@ -32,7 +32,7 @@ export function LibraryHeader({
         </div>
         <span className="text-lg font-bold tracking-tight text-foreground">shooma</span>
       </div>
-      <div className="mb-5 rounded-2xl border border-border bg-white p-4 shadow-sm sm:mb-7 sm:p-6">
+      <div className="mb-5 rounded-2xl border border-border bg-white p-4 shadow-sm dark:bg-surface-muted sm:mb-7 sm:p-6">
       <div className="flex items-center justify-between gap-3 sm:gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
@@ -46,7 +46,8 @@ export function LibraryHeader({
           {selectMode ? (
             <button
               onClick={onExitSelectMode}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-muted-medium transition-all duration-150 hover:bg-surface-muted active:scale-[0.97]"
+              aria-label="Exit select mode"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-muted-medium transition-all duration-150 hover:bg-surface-muted active:scale-[0.97] dark:bg-surface-muted"
             >
               <X className="size-4" strokeWidth={1.5} />
               <span className="hidden sm:inline">Done</span>
@@ -56,7 +57,7 @@ export function LibraryHeader({
               {pdfCount > 0 && (
                 <button
                   onClick={onToggleSelect}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-muted-medium transition-all duration-150 hover:bg-surface-muted active:scale-[0.97]"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-muted-medium transition-all duration-150 hover:bg-surface-muted active:scale-[0.97] dark:bg-surface-muted"
                   aria-label="Enter select mode"
                 >
                   <Check className="size-4" strokeWidth={1.5} />
@@ -65,7 +66,8 @@ export function LibraryHeader({
               )}
               <button
                 onClick={onToggleFolder}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-muted-medium transition-all duration-150 hover:bg-surface-muted active:scale-[0.97]"
+                aria-label="Create folder"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-muted-medium transition-all duration-150 hover:bg-surface-muted active:scale-[0.97] dark:bg-surface-muted"
               >
                 <FolderPlus className="size-4" strokeWidth={1.5} />
                 <span className="hidden sm:inline">Folder</span>
@@ -101,7 +103,7 @@ export function LibraryHeader({
 
       {selectMode && (
         <div className="mt-3 sm:mt-4">
-          <span className="text-sm font-medium text-accent">
+          <span aria-live="polite" className="text-sm font-medium text-accent">
             {selectedCount} selected
           </span>
         </div>

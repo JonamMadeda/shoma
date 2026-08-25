@@ -48,8 +48,8 @@ export function ReaderView({ blocks, fontSize, searchQuery = '', activeMatch = -
   }, []);
 
   useEffect(() => {
-    if (isLandscape) resetHideTimer();
-    else setProgressVisible(true);
+    if (isLandscape) setTimeout(() => resetHideTimer(), 0);
+    else setTimeout(() => setProgressVisible(true), 0);
     return () => { if (hideTimerRef.current) clearTimeout(hideTimerRef.current); };
   }, [isLandscape, resetHideTimer]);
 
@@ -125,6 +125,7 @@ export function ReaderView({ blocks, fontSize, searchQuery = '', activeMatch = -
           className={`mx-auto ${maxWidth} ${padding}`}
           style={{ fontFamily: "'Merriweather', Georgia, 'Times New Roman', serif" }}
         >
+          {/* eslint-disable-next-line react-hooks/refs */}
           {blocks.map((block, i) => {
             switch (block.type) {
               case 'heading':
@@ -138,7 +139,14 @@ export function ReaderView({ blocks, fontSize, searchQuery = '', activeMatch = -
         </div>
       </div>
 
-      <div className={`pointer-events-none fixed left-0 right-0 z-30 h-0.5 bg-surface-muted transition-[top,opacity] duration-300 ${headerVisible ? 'top-14' : 'top-0'} ${progressVisible ? 'opacity-100' : 'opacity-0'}`}>
+      <div
+        role="progressbar"
+        aria-valuenow={Math.round(progress)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label="Reading progress"
+        className={`pointer-events-none fixed left-0 right-0 z-30 h-0.5 bg-surface-muted transition-[top,opacity] duration-300 ${headerVisible ? 'top-14' : 'top-0'} ${progressVisible ? 'opacity-100' : 'opacity-0'}`}
+      >
         <div
           className="h-full bg-accent transition-[width] duration-150 ease-out"
           style={{ width: `${progress}%` }}
@@ -181,12 +189,12 @@ function renderParagraph(block: ParagraphBlock, fontSize: number, key: number, q
 function renderTable(block: TableBlock, _fontSize: number, key: number, query: string, registerBlock: (index: number, element: HTMLElement | null) => void) {
   return (
     <div key={key} ref={(element) => registerBlock(key, element)} className="mb-6 overflow-x-auto rounded-lg border border-border">
-      <table className="w-full border-collapse text-sm text-muted-medium">
+      <table role="table" className="w-full border-collapse text-sm text-muted-medium">
         {block.headers.length > 0 && (
           <thead>
             <tr className="bg-surface-muted">
               {block.headers.map((h, i) => (
-                <th key={i} className="px-3 py-2.5 text-left font-semibold text-foreground border-b border-border">
+                <th key={i} scope="col" className="px-3 py-2.5 text-left font-semibold text-foreground border-b border-border">
                   {highlightText(h, query)}
                 </th>
               ))}
@@ -215,7 +223,7 @@ function highlightText(text: string, query: string): React.ReactNode {
   const parts = text.split(new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
   return parts.map((part, index) =>
     part.toLocaleLowerCase() === term.toLocaleLowerCase()
-      ? <mark key={index} className="rounded bg-yellow-200 px-0.5 text-foreground">{part}</mark>
+      ? <mark key={index} className="rounded bg-yellow-200 px-0.5 text-foreground dark:bg-yellow-800/50 dark:text-yellow-100">{part}</mark>
       : part
   );
 }

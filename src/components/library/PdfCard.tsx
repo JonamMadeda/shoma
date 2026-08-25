@@ -1,7 +1,7 @@
 'use client';
 
 import { FileText, ChevronRight, Move, Trash2, Check, MoreHorizontal } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { formatTitle, estimatePages, formatDate } from '@/lib/library-utils';
@@ -35,15 +35,25 @@ export function PdfCard({
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
 
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
+
   useEffect(() => {
     if (!menuOpen) return;
-    const close = () => setMenuOpen(false);
-    window.addEventListener('scroll', close, { passive: true });
-    window.addEventListener('resize', close);
+    window.addEventListener('scroll', closeMenu, { passive: true });
+    window.addEventListener('resize', closeMenu);
     return () => {
-      window.removeEventListener('scroll', close);
-      window.removeEventListener('resize', close);
+      window.removeEventListener('scroll', closeMenu);
+      window.removeEventListener('resize', closeMenu);
     };
+  }, [menuOpen, closeMenu]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
   }, [menuOpen]);
 
   const openCompactMenu = (event: React.MouseEvent) => {
@@ -56,11 +66,18 @@ export function PdfCard({
     return (
       <div
         onClick={() => onToggleSelect(pdf.id)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggleSelect(pdf.id);
+          }
+        }}
+        tabIndex={0}
         className={cn(
-          'flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 transition-colors sm:gap-4 sm:px-4',
+          'flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 sm:gap-4 sm:px-4',
           isSelected
             ? 'bg-accent-light'
-            : 'bg-white hover:bg-surface-muted'
+            : 'bg-white hover:bg-surface-muted dark:bg-surface-muted'
         )}
         role="option"
         aria-selected={isSelected}
@@ -86,10 +103,10 @@ export function PdfCard({
   }
 
   return (
-    <div className="group relative bg-white transition-all duration-200">
+    <div className="group relative bg-white transition-all duration-200 dark:bg-surface-muted">
       <button
         onClick={() => onOpen(pdf.id)}
-        className="flex w-full items-center gap-3 py-3 pr-10 text-left sm:gap-4 sm:pr-12"
+        className="flex w-full items-center gap-3 py-3 pr-10 text-left sm:gap-4 sm:pr-12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:rounded-lg"
         aria-label={`Open ${formatTitle(pdf.title || pdf.filename)}`}
       >
         <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent-light transition-colors duration-200 group-hover:bg-accent group-hover:shadow-sm">
@@ -113,10 +130,10 @@ export function PdfCard({
       </button>
 
       {moveTarget === pdf.id ? (
-        <div className="flex flex-wrap items-center gap-1.5 border-t border-border-subtle pb-2 pt-2">
+        <div className="flex flex-wrap items-center gap-1.5 border-t border-border-subtle pb-2 pt-2" role="group" aria-label="Move to folder">
           <button
             onClick={(e) => { e.stopPropagation(); onMove(pdf.id, null); }}
-            className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-medium transition-colors hover:bg-surface-muted active:scale-95"
+            className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-medium transition-colors hover:bg-surface-muted active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
           >
             No folder
           </button>
@@ -126,14 +143,14 @@ export function PdfCard({
               <button
                 key={f.id}
                 onClick={(e) => { e.stopPropagation(); onMove(pdf.id, f.id); }}
-                className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-medium transition-colors hover:bg-surface-muted active:scale-95"
+                className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-medium transition-colors hover:bg-surface-muted active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
               >
                 {f.name}
               </button>
             ))}
           <button
             onClick={(e) => { e.stopPropagation(); onStartMove(null); }}
-            className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-surface-muted active:scale-95"
+            className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-surface-muted active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
           >
             Cancel
           </button>
@@ -142,7 +159,7 @@ export function PdfCard({
         <div className="absolute right-0 top-3 flex items-center gap-0.5">
           <button
             onClick={openCompactMenu}
-            className="flex size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-muted hover:text-muted-medium active:scale-95 sm:hidden"
+            className="flex size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-muted hover:text-muted-medium active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:hidden"
             aria-label={`Actions for ${formatTitle(pdf.title || pdf.filename)}`}
             aria-expanded={menuOpen}
           >
@@ -152,7 +169,7 @@ export function PdfCard({
           {folders.length > 0 && (
             <button
               onClick={(e) => { e.stopPropagation(); onStartMove(moveTarget === pdf.id ? null : pdf.id); }}
-              className="flex size-8 items-center justify-center rounded-lg text-muted-faint transition-colors hover:bg-surface-muted hover:text-muted-medium active:scale-95"
+              className="flex size-8 items-center justify-center rounded-lg text-muted-faint transition-colors hover:bg-surface-muted hover:text-muted-medium active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
               aria-label="Move PDF"
             >
               <Move className="size-4" strokeWidth={1.5} />
@@ -160,7 +177,7 @@ export function PdfCard({
           )}
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(pdf.id); }}
-            className="flex size-8 items-center justify-center rounded-lg text-muted-faint transition-colors hover:bg-red-50 hover:text-red-500 active:scale-95"
+            className="flex size-8 items-center justify-center rounded-lg text-muted-faint transition-colors hover:bg-red-50 hover:text-red-500 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 dark:hover:bg-red-900/20"
             aria-label="Delete PDF"
           >
             <Trash2 className="size-4" strokeWidth={1.5} />
@@ -171,16 +188,18 @@ export function PdfCard({
       {menuOpen && menuPos && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-50" onClick={() => setMenuOpen(false)}>
           <div
-            className="absolute w-36 overflow-hidden rounded-xl border border-border bg-white p-1 shadow-lg"
+            className="absolute w-36 overflow-hidden rounded-xl border border-border bg-white p-1 shadow-lg dark:bg-surface-muted"
             style={{ top: menuPos.top, right: menuPos.right }}
             onClick={(event) => event.stopPropagation()}
+            role="menu"
+            aria-label="PDF actions"
           >
             {folders.length > 0 && (
-              <button onClick={(event) => { event.stopPropagation(); onStartMove(pdf.id); setMenuOpen(false); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-muted-medium hover:bg-surface-muted">
+              <button role="menuitem" onClick={(event) => { event.stopPropagation(); onStartMove(pdf.id); setMenuOpen(false); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-muted-medium hover:bg-surface-muted focus-visible:outline-none focus-visible:bg-surface-muted">
                 <Move className="size-4" strokeWidth={1.5} /> Move
               </button>
             )}
-            <button onClick={(event) => { event.stopPropagation(); onDelete(pdf.id); setMenuOpen(false); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50">
+            <button role="menuitem" onClick={(event) => { event.stopPropagation(); onDelete(pdf.id); setMenuOpen(false); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 focus-visible:outline-none focus-visible:bg-red-50 dark:hover:bg-red-900/20">
               <Trash2 className="size-4" strokeWidth={1.5} /> Delete
             </button>
           </div>

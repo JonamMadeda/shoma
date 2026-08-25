@@ -12,7 +12,7 @@ interface EmptyStateProps {
 export function EmptyState({ type, folderName, onClearSearch }: EmptyStateProps) {
   if (type === 'no-pdfs') {
     return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface-muted/50 py-20 text-center">
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface-muted/50 py-14 sm:py-20 text-center">
         <div className="relative mb-5">
           <div className="absolute inset-0 rounded-2xl bg-accent/10 blur-xl" />
           <div className="relative flex h-16 w-16 animate-float items-center justify-center rounded-2xl bg-accent-light shadow-sm">
@@ -23,7 +23,7 @@ export function EmptyState({ type, folderName, onClearSearch }: EmptyStateProps)
         <p className="mt-1.5 text-sm text-muted">Upload a PDF to get started</p>
         <Link
           href="/upload"
-          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-medium text-white shadow-sm shadow-accent/20 transition-all duration-150 hover:bg-accent-hover active:scale-[0.97]"
+          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-medium text-white shadow-sm shadow-accent/20 transition-all duration-150 hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 active:scale-[0.97]"
         >
           <Upload className="h-4 w-4" strokeWidth={1.5} />
           Upload PDF
@@ -52,7 +52,12 @@ export function EmptyState({ type, folderName, onClearSearch }: EmptyStateProps)
       <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface-muted/30 py-14 text-center">
         <p className="text-sm font-semibold text-foreground">No matching documents</p>
         <p className="mt-1 text-sm text-muted">Try a different title or clear your search.</p>
-        <button onClick={onClearSearch} className="mt-4 rounded-lg px-3 py-2 text-sm font-medium text-accent hover:bg-accent-light">Clear search</button>
+        <button
+          onClick={onClearSearch}
+          className="mt-4 rounded-lg px-3 py-2 text-sm font-medium text-accent hover:bg-accent-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+        >
+          Clear search
+        </button>
       </div>
     );
   }

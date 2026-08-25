@@ -38,7 +38,7 @@ export function SearchBar({ search, sort, onSearchChange, onSortChange }: Search
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === '/' && document.activeElement?.tagName !== 'INPUT') {
+      if (event.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
         event.preventDefault();
         document.getElementById('library-search')?.focus();
       }
@@ -49,10 +49,10 @@ export function SearchBar({ search, sort, onSearchChange, onSortChange }: Search
   }, []);
 
   return (
-    <div className="mb-7 rounded-2xl border border-border bg-white p-2 shadow-sm sm:mb-9 sm:p-3">
+    <div className="mb-7 rounded-2xl border border-border bg-white p-2 shadow-sm dark:bg-surface-muted sm:mb-9 sm:p-3">
       <div className="flex items-center gap-2 sm:gap-3">
         <div className="group relative min-w-0 flex-1">
-          <div className="flex items-center gap-2.5 rounded-xl bg-surface-muted/70 px-3 py-2.5 transition-all duration-200 focus-within:bg-white focus-within:ring-2 focus-within:ring-accent/20 sm:px-4 sm:py-3">
+          <div className="flex items-center gap-2.5 rounded-xl bg-surface-muted/70 px-3 py-2.5 transition-all duration-200 focus-within:bg-white focus-within:ring-2 focus-within:ring-accent/20 dark:focus-within:bg-surface-muted sm:px-4 sm:py-3">
             <Search className="size-4 shrink-0 text-muted transition-colors duration-200 group-focus-within:text-accent" strokeWidth={1.5} />
             <input
               id="library-search"
@@ -66,7 +66,7 @@ export function SearchBar({ search, sort, onSearchChange, onSortChange }: Search
             {search && (
               <button
                 onClick={() => onSearchChange('')}
-                className="flex size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-muted hover:text-foreground active:scale-95"
+                className="flex size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-muted hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                 aria-label="Clear search"
               >
                 <X className="size-4" strokeWidth={1.5} />
@@ -81,7 +81,7 @@ export function SearchBar({ search, sort, onSearchChange, onSortChange }: Search
           <select
             value={sort}
             onChange={(event) => onSortChange(event.target.value as SortKey)}
-            className="h-[42px] w-full appearance-none rounded-xl border border-border bg-white py-2 pl-9 pr-2 text-sm font-medium text-muted-medium focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+            className="h-[42px] w-full appearance-none rounded-xl border border-border bg-white py-2 pl-9 pr-2 text-sm font-medium text-muted-medium focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 dark:bg-surface-muted"
             aria-label="Sort documents"
           >
             {sortOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
@@ -91,8 +91,10 @@ export function SearchBar({ search, sort, onSearchChange, onSortChange }: Search
         <div className="relative hidden sm:block" ref={sortRef}>
           <button
             onClick={() => setSortOpen(!sortOpen)}
+            aria-expanded={sortOpen}
+            aria-haspopup="listbox"
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-xl border bg-white px-3 py-3 text-sm font-medium transition-all duration-150 active:scale-[0.97]',
+              'inline-flex items-center gap-1.5 rounded-xl border bg-white px-3 py-3 text-sm font-medium transition-all duration-150 active:scale-[0.97] dark:bg-surface-muted',
               sortOpen
                 ? 'border-accent text-accent shadow-sm'
                 : 'border-border text-muted-medium hover:border-muted hover:bg-surface-muted'
@@ -103,10 +105,12 @@ export function SearchBar({ search, sort, onSearchChange, onSortChange }: Search
           </button>
 
           {sortOpen && (
-            <div className="absolute right-0 top-full z-[55] mt-1 w-36 overflow-hidden rounded-xl border border-border bg-white shadow-lg">
+            <div role="listbox" aria-label="Sort options" className="absolute right-0 top-full z-[55] mt-1 w-36 overflow-hidden rounded-xl border border-border bg-white shadow-lg dark:bg-surface-muted">
               {sortOptions.map((option) => (
                 <button
                   key={option.value}
+                  role="option"
+                  aria-selected={sort === option.value}
                   onClick={() => {
                     onSortChange(option.value);
                     setSortOpen(false);

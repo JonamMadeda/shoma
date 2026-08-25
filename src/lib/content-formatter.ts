@@ -23,7 +23,6 @@ export interface ParagraphBlock {
 export type ContentBlock = HeadingBlock | ParagraphBlock | TableBlock;
 
 const HEADING_SIZE_RATIO = 1.25;
-const TABLE_COLUMN_GAP_RATIO = 0.02;
 
 function findBodyFontSize(pages: RawPage[]): number {
   const sizes: number[] = [];

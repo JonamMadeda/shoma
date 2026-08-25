@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState, type DragEvent, type ChangeEvent } from 'react';
 import { Upload, FileText, X, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from './ui/Button';
+import { cn } from '@/lib/utils';
 
 interface UploadZoneProps {
   onFileSelect: (file: File) => void;
@@ -82,7 +83,7 @@ export function UploadZone({ onFileSelect, isLoading }: UploadZoneProps) {
 
   if (isLoading) {
     return (
-      <div className="rounded-2xl border border-border bg-white p-10">
+      <div className="rounded-2xl border border-border bg-white p-10 dark:bg-surface-muted">
         <div className="flex flex-col items-center gap-5">
           <div className="relative">
             <div className="size-14 animate-spin rounded-full border-4 border-border" />
@@ -110,7 +111,7 @@ export function UploadZone({ onFileSelect, isLoading }: UploadZoneProps) {
 
   if (selectedFile) {
     return (
-      <div className="rounded-2xl border border-border bg-white p-6">
+      <div className="rounded-2xl border border-border bg-white p-6 dark:bg-surface-muted">
         <div className="flex items-center gap-4">
           <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-accent-light shadow-sm">
             <FileText className="size-6 text-accent" strokeWidth={1.5} />
@@ -121,7 +122,7 @@ export function UploadZone({ onFileSelect, isLoading }: UploadZoneProps) {
           </div>
           <button
             onClick={handleCancel}
-            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted transition-all duration-150 hover:bg-red-50 hover:text-red-500 active:scale-95"
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted transition-all duration-150 hover:bg-red-50 hover:text-red-500 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 dark:hover:bg-red-900/20"
             aria-label="Remove file"
           >
             <X className="size-4" strokeWidth={1.5} />
@@ -132,7 +133,7 @@ export function UploadZone({ onFileSelect, isLoading }: UploadZoneProps) {
             Cancel
           </Button>
           <Button variant="primary" size="sm" onClick={handleConfirm}>
-            Upload & Read
+            Upload &amp; Read
           </Button>
         </div>
       </div>
@@ -148,12 +149,19 @@ export function UploadZone({ onFileSelect, isLoading }: UploadZoneProps) {
         onClick={handleClick}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleClick(); }}
-        className={`group relative cursor-pointer rounded-2xl border-2 border-dashed p-10 sm:p-14 text-center transition-all duration-300 ${
+        aria-label="Upload PDF file. Click or drag and drop a PDF here."
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
+        className={cn(
+          'group relative cursor-pointer rounded-2xl border-2 border-dashed p-10 sm:p-14 text-center transition-all duration-300',
           isDragging
             ? 'scale-[1.01] border-accent bg-accent-light/50 shadow-xl shadow-accent/10'
             : 'border-border bg-surface-muted/30 hover:border-accent/40 hover:bg-accent-light/20 hover:shadow-lg hover:shadow-accent/5'
-        }`}
+        )}
       >
         <input
           ref={inputRef}
@@ -164,12 +172,13 @@ export function UploadZone({ onFileSelect, isLoading }: UploadZoneProps) {
         />
 
         <div className="flex flex-col items-center gap-4">
-          <div className={`transition-all duration-300 ${isDragging ? 'animate-bounce scale-110' : 'group-hover:scale-110 group-hover:-translate-y-1'}`}>
-            <div className={`flex size-16 items-center justify-center rounded-2xl transition-all duration-300 ${
+          <div className={cn('transition-all duration-300', isDragging ? 'scale-110' : 'group-hover:scale-110 group-hover:-translate-y-1')}>
+            <div className={cn(
+              'flex size-16 items-center justify-center rounded-2xl transition-all duration-300',
               isDragging
                 ? 'bg-accent text-white shadow-lg shadow-accent/30'
                 : 'bg-accent-light text-accent group-hover:bg-accent group-hover:text-white group-hover:shadow-lg group-hover:shadow-accent/25'
-            }`}>
+            )}>
               {isDragging ? (
                 <FileText className="size-7" strokeWidth={1.5} />
               ) : (
@@ -189,7 +198,7 @@ export function UploadZone({ onFileSelect, isLoading }: UploadZoneProps) {
       </div>
 
       {error && (
-        <div className="mt-3 flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div role="alert" className="mt-3 flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {error}
         </div>

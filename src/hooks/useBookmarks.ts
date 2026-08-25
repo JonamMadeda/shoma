@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 const STORAGE_KEY = 'bookmarks';
 
@@ -14,24 +14,30 @@ export interface Bookmark {
 
 export function useBookmarks(pdfId: string) {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const bookmarksRef = useRef<Bookmark[]>([]);
 
   useEffect(() => {
     try {
       const data = localStorage.getItem(STORAGE_KEY);
       if (data) {
         const all: Bookmark[] = JSON.parse(data);
-        setBookmarks(all.filter((b) => b.pdfId === pdfId));
+        const filtered = all.filter((b) => b.pdfId === pdfId);
+        setTimeout(() => {
+          setBookmarks(filtered);
+          bookmarksRef.current = filtered;
+        }, 0);
       }
     } catch {
-      // Ignore errors
+      try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
     }
   }, [pdfId]);
 
   const saveAll = useCallback((all: Bookmark[]) => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+      return true;
     } catch {
-      // Ignore errors
+      return false;
     }
   }, []);
 
@@ -44,31 +50,37 @@ export function useBookmarks(pdfId: string) {
       createdAt: Date.now(),
     };
 
-    setBookmarks((prev) => {
-      const updated = [...prev, bookmark];
-      try {
-        const data = localStorage.getItem(STORAGE_KEY);
-        const all: Bookmark[] = data ? JSON.parse(data) : [];
-        saveAll([...all, bookmark]);
-      } catch {
-        // Ignore errors
-      }
-      return updated;
-    });
+    const currentAll = bookmarksRef.current;
+    const updatedAll = [...currentAll, bookmark];
+
+    setBookmarks(updatedAll);
+    bookmarksRef.current = updatedAll;
+
+    try {
+      const data = localStorage.getItem(STORAGE_KEY);
+      const all: Bookmark[] = data ? JSON.parse(data) : [];
+      saveAll([...all.filter((b) => !(b.pdfId === pdfId && b.page === page)), bookmark]);
+    } catch {
+      setBookmarks(currentAll);
+      bookmarksRef.current = currentAll;
+    }
   }, [pdfId, saveAll]);
 
   const removeBookmark = useCallback((id: string) => {
-    setBookmarks((prev) => {
-      const updated = prev.filter((b) => b.id !== id);
-      try {
-        const data = localStorage.getItem(STORAGE_KEY);
-        const all: Bookmark[] = data ? JSON.parse(data) : [];
-        saveAll(all.filter((b) => b.id !== id));
-      } catch {
-        // Ignore errors
-      }
-      return updated;
-    });
+    const currentAll = bookmarksRef.current;
+    const updatedAll = currentAll.filter((b) => b.id !== id);
+
+    setBookmarks(updatedAll);
+    bookmarksRef.current = updatedAll;
+
+    try {
+      const data = localStorage.getItem(STORAGE_KEY);
+      const all: Bookmark[] = data ? JSON.parse(data) : [];
+      saveAll(all.filter((b) => b.id !== id));
+    } catch {
+      setBookmarks(currentAll);
+      bookmarksRef.current = currentAll;
+    }
   }, [saveAll]);
 
   const isBookmarked = useCallback((page: number) => {

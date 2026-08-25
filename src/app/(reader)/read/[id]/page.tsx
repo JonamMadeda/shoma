@@ -132,9 +132,11 @@ export default function ReadPage() {
       const saved = localStorage.getItem('reader-preferences');
       if (!saved) return;
       const preferences = JSON.parse(saved) as { fontSize?: number; lineHeight?: number; textWidth?: 'normal' | 'wide' };
-      if (preferences.fontSize) setFontSize(preferences.fontSize);
-      if (preferences.lineHeight) setLineHeight(preferences.lineHeight);
-      if (preferences.textWidth) setTextWidth(preferences.textWidth);
+      setTimeout(() => {
+        if (preferences.fontSize) setFontSize(preferences.fontSize);
+        if (preferences.lineHeight) setLineHeight(preferences.lineHeight);
+        if (preferences.textWidth) setTextWidth(preferences.textWidth);
+      }, 0);
     } catch {
       // Ignore unavailable or malformed local preferences.
     }
@@ -200,7 +202,7 @@ export default function ReadPage() {
   if (loading) {
     return (
       <div className="flex min-h-dvh flex-col">
-        <div className="flex flex-1 items-center justify-center">
+            <div role="status" aria-label="Loading PDF" className="flex flex-1 items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <div className="size-8 animate-spin rounded-full border-[3px] border-border border-t-accent" />
             <p className="text-sm text-muted">Preparing reader...</p>
@@ -214,7 +216,7 @@ export default function ReadPage() {
     return (
       <div className="flex min-h-dvh flex-col">
         <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4">
-          <p className="text-sm text-red-500">{error}</p>
+          <p role="alert" className="text-sm text-red-500">{error}</p>
           <Button variant="secondary" onClick={() => router.push('/')}>Back to Library</Button>
         </div>
       </div>
@@ -222,7 +224,7 @@ export default function ReadPage() {
   }
 
   return (
-    <div className="relative flex h-dvh min-h-0 flex-col overflow-hidden bg-white">
+    <div className="relative flex h-dvh min-h-0 flex-col overflow-hidden bg-white dark:bg-background">
       {/* A small reveal zone keeps the navigation reachable without changing the reading position. */}
       {!headerVisible && (
         <div
@@ -234,7 +236,7 @@ export default function ReadPage() {
       {/* Header follows the reading direction. */}
       <header
         className={cn(
-          'sticky top-0 z-40 h-14 border-b border-border/80 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 transition-all duration-300',
+          'sticky top-0 z-40 h-14 border-b border-border/80 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:bg-sidebar/95 transition-all duration-300',
           headerVisible && menuOpen ? 'overflow-visible' : 'overflow-hidden',
           !headerVisible && 'pointer-events-none h-0 border-transparent opacity-0'
         )}
@@ -248,7 +250,7 @@ export default function ReadPage() {
             <span className="hidden sm:inline">Library</span>
           </button>
 
-          <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-white p-0.5">
+          <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-white p-0.5 dark:bg-surface-muted">
             <button
               onClick={switchToPdf}
               className={cn(
@@ -317,7 +319,7 @@ export default function ReadPage() {
             <MoreHorizontal className="size-5" />
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-full z-[60] mt-2 w-52 rounded-xl border border-border bg-white p-1.5 shadow-xl">
+            <div className="absolute right-0 top-full z-[60] mt-2 w-52 rounded-xl border border-border bg-white p-1.5 shadow-xl dark:bg-surface-muted">
               <div className="flex items-center gap-1 border-b border-border px-1 pb-1.5">
                 <BookmarkButton pdfId={id} currentPage={currentPage} />
                 {viewMode === 'text' && blocks.length > 0 && <PdfSearch blocks={blocks} onQueryChange={setSearchQuery} onMatchFound={handleSearchMatch} />}
@@ -333,10 +335,10 @@ export default function ReadPage() {
       </header>
 
       {viewMode === 'text' && tocOpen && (
-        <aside className="absolute left-3 top-16 z-30 max-h-[calc(100dvh-5rem)] w-72 overflow-y-auto rounded-xl border border-border bg-white p-2 shadow-xl">
+          <aside role="dialog" aria-label="Table of contents" className="absolute left-3 top-16 z-30 max-h-[calc(100dvh-5rem)] w-72 overflow-y-auto rounded-xl border border-border bg-white p-2 shadow-xl dark:bg-surface-muted">
           <p className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted">Contents</p>
           {headings.map((heading) => (
-            <button key={heading.index} onClick={() => { setTocTarget(heading.index); setTocOpen(false); }} className="block w-full rounded-lg px-2 py-2 text-left text-sm text-foreground hover:bg-surface-muted" style={{ paddingLeft: `${8 + (heading.level - 1) * 12}px` }}>
+            <button key={heading.index} onClick={() => { setTocTarget(heading.index); setTocOpen(false); }} className="block w-full rounded-lg px-2 py-2 text-left text-sm text-foreground hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40" style={{ paddingLeft: `${8 + (heading.level - 1) * 12}px` }}>
               {heading.text}
             </button>
           ))}
@@ -344,18 +346,18 @@ export default function ReadPage() {
       )}
 
       {viewMode === 'text' && settingsOpen && (
-        <aside className="absolute right-3 top-16 z-30 w-72 rounded-xl border border-border bg-white p-4 shadow-xl">
+        <aside role="dialog" aria-label="Reading settings" className="absolute right-3 top-16 z-30 w-72 rounded-xl border border-border bg-white p-4 shadow-xl dark:bg-surface-muted">
           <p className="mb-3 text-sm font-semibold text-foreground">Reading settings</p>
-          <div className="mb-4 flex items-center justify-between"><span className="text-sm text-muted-medium">Text size</span><div className="flex items-center gap-2"><button onClick={() => setFontSize((size) => Math.max(MIN_FONT, size - STEP))} className="rounded-lg border border-border p-1.5" aria-label="Decrease font size"><Minus className="size-4" /></button><span className="w-8 text-center text-sm tabular-nums">{fontSize}</span><button onClick={() => setFontSize((size) => Math.min(MAX_FONT, size + STEP))} className="rounded-lg border border-border p-1.5" aria-label="Increase font size"><Plus className="size-4" /></button></div></div>
+          <div className="mb-4 flex items-center justify-between"><span className="text-sm text-muted-medium">Text size</span><div className="flex items-center gap-2"><button onClick={() => setFontSize((size) => Math.max(MIN_FONT, size - STEP))} disabled={fontSize <= MIN_FONT} className="rounded-lg border border-border p-1.5 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50" aria-label="Decrease font size"><Minus className="size-4" /></button><span className="w-8 text-center text-sm tabular-nums">{fontSize}</span><button onClick={() => setFontSize((size) => Math.min(MAX_FONT, size + STEP))} disabled={fontSize >= MAX_FONT} className="rounded-lg border border-border p-1.5 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50" aria-label="Increase font size"><Plus className="size-4" /></button></div></div>
           <label className="mb-4 block text-sm text-muted-medium">Line spacing<input type="range" min="1.4" max="2.1" step="0.1" value={lineHeight} onChange={(event) => setLineHeight(Number(event.target.value))} className="mt-2 w-full accent-accent" /></label>
-          <div className="mb-4"><p className="mb-2 text-sm text-muted-medium">Text width</p><div className="grid grid-cols-2 gap-2"><button onClick={() => setTextWidth('normal')} className={cn('rounded-lg border px-3 py-2 text-sm', textWidth === 'normal' && 'border-accent bg-accent-light text-accent')}>Comfort</button><button onClick={() => setTextWidth('wide')} className={cn('rounded-lg border px-3 py-2 text-sm', textWidth === 'wide' && 'border-accent bg-accent-light text-accent')}>Wide</button></div></div>
-          <div><p className="mb-2 text-sm text-muted-medium">Appearance</p><div className="grid grid-cols-2 gap-2"><button onClick={() => setTheme('light')} className={cn('flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm', resolvedTheme === 'light' && 'border-accent bg-accent-light text-accent')}><Sun className="size-4" />Light</button><button onClick={() => setTheme('dark')} className={cn('flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm', resolvedTheme === 'dark' && 'border-accent bg-accent-light text-accent')}><Moon className="size-4" />Dark</button></div></div>
+          <div className="mb-4"><p className="mb-2 text-sm text-muted-medium">Text width</p><div className="grid grid-cols-2 gap-2"><button onClick={() => setTextWidth('normal')} className={cn('rounded-lg border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50', textWidth === 'normal' && 'border-accent bg-accent-light text-accent')}>Comfort</button><button onClick={() => setTextWidth('wide')} className={cn('rounded-lg border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50', textWidth === 'wide' && 'border-accent bg-accent-light text-accent')}>Wide</button></div></div>
+          <div><p className="mb-2 text-sm text-muted-medium">Appearance</p><div className="grid grid-cols-2 gap-2"><button onClick={() => setTheme('light')} className={cn('flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50', resolvedTheme === 'light' && 'border-accent bg-accent-light text-accent')}><Sun className="size-4" />Light</button><button onClick={() => setTheme('dark')} className={cn('flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50', resolvedTheme === 'dark' && 'border-accent bg-accent-light text-accent')}><Moon className="size-4" />Dark</button></div></div>
         </aside>
       )}
 
       {viewMode === 'text' ? (
         extracting || !textReady ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-white">
+          <div role="status" aria-label="Extracting text" className="flex flex-1 flex-col items-center justify-center gap-3 bg-white dark:bg-background">
             <div className="size-8 animate-spin rounded-full border-[3px] border-border border-t-accent" />
             <p className="text-sm text-muted">{textError ? 'Failed to extract text' : 'Extracting text...'}</p>
           </div>

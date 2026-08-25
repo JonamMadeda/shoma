@@ -1,7 +1,7 @@
 'use client';
 
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
-import type { TextItem, TextStyle } from 'pdfjs-dist/types/src/display/api';
+import type { TextItem } from 'pdfjs-dist/types/src/display/api';
 
 GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.mjs',
@@ -46,8 +46,6 @@ export async function extractPages(file: File): Promise<RawPage[]> {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
     const items = content.items as TextItem[];
-    const styles = content.styles as Record<string, TextStyle>;
-
     const lines: RawLine[] = [];
     let currentRuns: TextRun[] = [];
     let lastY: number | null = null;

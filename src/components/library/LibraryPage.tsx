@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLibrary } from '@/hooks/useLibrary';
 import { CardSkeleton } from '@/components/ui/Skeleton';
@@ -39,6 +39,20 @@ export default function LibraryPage() {
   const [confirmDelete, setConfirmDelete] = useState<ConfirmDeleteState | null>(null);
   const [showAllUncategorized, setShowAllUncategorized] = useState(false);
 
+  const exitSelectMode = useCallback(() => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  useEffect(() => {
+    if (!selectMode) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') exitSelectMode();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [selectMode, exitSelectMode]);
+
   const toggleFolder = (id: string) => {
     setExpandedFolders((prev) => {
       const next = new Set(prev);
@@ -55,11 +69,6 @@ export default function LibraryPage() {
       else next.add(id);
       return next;
     });
-  };
-
-  const exitSelectMode = () => {
-    setSelectMode(false);
-    setSelectedIds(new Set());
   };
 
   const handleSearchChange = (value: string) => {
@@ -91,16 +100,17 @@ export default function LibraryPage() {
     exitSelectMode();
   };
 
-  const handleConfirmDeletePdf = () => {
+  const handleConfirmDeletePdf = async () => {
     if (!confirmDelete || confirmDelete.type !== 'pdf') return;
-    deletePdf(confirmDelete.ids[0]);
-    setSelectedIds((prev) => { const next = new Set(prev); next.delete(confirmDelete.ids[0]); return next; });
+    const id = confirmDelete.ids[0];
+    await deletePdf(id);
+    setSelectedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
     setConfirmDelete(null);
   };
 
-  const handleConfirmDeleteFolder = () => {
+  const handleConfirmDeleteFolder = async () => {
     if (!confirmDelete || confirmDelete.type !== 'folder') return;
-    deleteFolder(confirmDelete.ids[0]);
+    await deleteFolder(confirmDelete.ids[0]);
     setConfirmDelete(null);
   };
 
@@ -247,7 +257,7 @@ export default function LibraryPage() {
                   </span>
                 </div>
                 <div
-                  className="overflow-hidden rounded-xl border border-border bg-white sm:rounded-xl"
+                  className="overflow-hidden rounded-xl border border-border bg-white sm:rounded-xl dark:bg-surface-muted"
                   role={selectMode ? 'listbox' : undefined}
                   aria-label={selectMode ? 'Select PDFs' : undefined}
                 >
@@ -272,7 +282,8 @@ export default function LibraryPage() {
                 {pdfsByFolder.uncategorized.length > 9 && !showAllUncategorized && (
                   <button
                     onClick={() => setShowAllUncategorized(true)}
-                    className="mt-3 w-full rounded-xl border border-border bg-white py-2.5 text-sm font-medium text-muted transition-all duration-150 hover:bg-surface-muted hover:text-foreground active:scale-[0.99]"
+                    aria-label={`Show all ${pdfsByFolder.uncategorized.length} documents`}
+                    className="mt-3 w-full rounded-xl border border-border bg-white py-2.5 text-sm font-medium text-muted transition-all duration-150 hover:bg-surface-muted hover:text-foreground active:scale-[0.99] dark:bg-surface-muted"
                   >
                     Show all {pdfsByFolder.uncategorized.length} documents &darr;
                   </button>

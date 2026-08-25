@@ -100,7 +100,7 @@ export function PageThumbnails({
       </button>
 
       {isOpen && (
-        <div className="absolute bottom-0 left-0 top-11 z-40 w-28 border-r border-border bg-white shadow-lg lg:w-32">
+        <div className="absolute bottom-0 left-0 top-11 z-40 w-28 border-r border-border bg-white shadow-lg dark:bg-surface-muted lg:w-32">
           <div ref={containerRef} className="h-full overflow-y-auto p-2">
             <div className="flex flex-col gap-2">
               {Array.from({ length: pageCount }, (_, i) => i + 1).map((pageNum) => (

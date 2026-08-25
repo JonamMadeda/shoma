@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { cn } from '@/lib/utils';
 
 interface CardProps {
   children: ReactNode;
@@ -12,11 +13,12 @@ export function Card({ children, className = '', hover, onClick }: CardProps) {
   return (
     <Tag
       onClick={onClick}
-      className={`rounded-xl border border-slate-200 bg-white p-4 text-left ${
-        hover
-          ? 'transition-all hover:border-slate-300 hover:shadow-sm'
-          : ''
-      } ${onClick ? 'w-full' : ''} ${className}`}
+      className={cn(
+        'rounded-xl border border-border bg-white p-4 text-left',
+        hover && 'transition-all hover:border-border hover:shadow-sm',
+        onClick && 'w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2',
+        className
+      )}
     >
       {children}
     </Tag>

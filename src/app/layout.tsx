@@ -31,8 +31,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${merriweather.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col bg-white">
+    <html lang="en" className={`${merriweather.variable} h-full antialiased`} suppressHydrationWarning>
+      <body className="flex min-h-full flex-col bg-white dark:bg-background">
         <AuthProvider>
           <ToastProvider>
             <DarkModeProvider>

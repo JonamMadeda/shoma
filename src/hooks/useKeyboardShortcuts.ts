@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 
 interface UseKeyboardShortcutsOptions {
   onZoomIn?: () => void;
@@ -19,34 +19,43 @@ export function useKeyboardShortcuts({
   onPrevPage,
   enabled = true,
 }: UseKeyboardShortcutsOptions) {
+  const lastKeyTimeRef = useRef(0);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (!enabled) return;
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
+      const now = performance.now();
+      const isRepeat = now - lastKeyTimeRef.current < 100;
+      lastKeyTimeRef.current = now;
+
       switch (e.key) {
         case '+':
         case '=':
+          if (isRepeat) return;
           e.preventDefault();
           onZoomIn?.();
           break;
         case '-':
         case '_':
+          if (isRepeat) return;
           e.preventDefault();
           onZoomOut?.();
           break;
         case 'Escape':
-          e.preventDefault();
           onEscape?.();
           break;
         case 'ArrowRight':
           if (!e.ctrlKey && !e.metaKey) {
+            if (isRepeat) return;
             e.preventDefault();
             onNextPage?.();
           }
           break;
         case 'ArrowLeft':
           if (!e.ctrlKey && !e.metaKey) {
+            if (isRepeat) return;
             e.preventDefault();
             onPrevPage?.();
           }

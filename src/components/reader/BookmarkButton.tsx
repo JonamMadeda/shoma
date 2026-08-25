@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Bookmark, BookmarkCheck, X } from 'lucide-react';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { cn } from '@/lib/utils';
@@ -28,6 +28,27 @@ export function BookmarkButton({ pdfId, currentPage }: BookmarkButtonProps) {
     setShowPanel(false);
   }, [bookmarked, existingBookmark, currentPage, note, addBookmark, removeBookmark]);
 
+  useEffect(() => {
+    if (!showPanel) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowPanel(false);
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [showPanel]);
+
+  useEffect(() => {
+    if (!showPanel) return;
+    const handler = (e: PointerEvent) => {
+      const target = e.target as Node;
+      if (!document.querySelector('[data-bookmark-panel]')?.contains(target)) {
+        setShowPanel(false);
+      }
+    };
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
+  }, [showPanel]);
+
   return (
     <div className="relative">
       <button
@@ -46,14 +67,15 @@ export function BookmarkButton({ pdfId, currentPage }: BookmarkButtonProps) {
       </button>
 
       {showPanel && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-border bg-white p-3 shadow-lg">
+        <div data-bookmark-panel className="absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-border bg-white p-3 shadow-lg dark:bg-surface-muted">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm font-medium text-foreground">
               {bookmarked ? 'Edit bookmark' : 'Bookmark page'} {currentPage}
             </span>
             <button
               onClick={() => setShowPanel(false)}
-              className="flex size-6 items-center justify-center rounded-lg text-muted hover:bg-surface-muted"
+              aria-label="Close bookmark panel"
+              className="flex size-6 items-center justify-center rounded-lg text-muted hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
             >
               <X className="size-3.5" strokeWidth={2} />
             </button>

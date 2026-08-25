@@ -20,6 +20,7 @@ export default function SignUpPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     setError(null);
     if (password !== confirmPassword) {
       setError('Passwords do not match');
@@ -35,13 +36,15 @@ export default function SignUpPage() {
     }
   };
 
+  const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
+
   return (
     <>
       <h1 className="mb-6 text-center font-serif text-2xl font-semibold text-foreground">
         Create account
       </h1>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} noValidate className="space-y-4">
         <Input
           id="name"
           label="Name"
@@ -82,10 +85,11 @@ export default function SignUpPage() {
           placeholder="Re-enter your password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
+          error={passwordsMismatch ? 'Passwords do not match' : undefined}
         />
 
         {error && (
-          <div className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-700">
+          <div role="alert" className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
             <AlertCircle className="h-4 w-4 shrink-0" />
             {error}
           </div>

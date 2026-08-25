@@ -34,8 +34,10 @@ export function PdfSearch({ blocks, onMatchFound, onQueryChange }: PdfSearchProp
   useEffect(() => {
     onQueryChange?.(query);
     if (!query.trim()) {
-      setMatches([]);
-      setCurrentMatch(0);
+      setTimeout(() => {
+        setMatches([]);
+        setCurrentMatch(0);
+      }, 0);
       return;
     }
 
@@ -54,8 +56,10 @@ export function PdfSearch({ blocks, onMatchFound, onQueryChange }: PdfSearchProp
       }
     });
 
-    setMatches(found);
-    setCurrentMatch(found.length > 0 ? 0 : -1);
+    setTimeout(() => {
+      setMatches(found);
+      setCurrentMatch(found.length > 0 ? 0 : -1);
+    }, 0);
     onMatchFound?.(found.length > 0 ? 0 : -1, found.length);
   }, [query, getAllText, onMatchFound, onQueryChange]);
 
@@ -109,7 +113,7 @@ export function PdfSearch({ blocks, onMatchFound, onQueryChange }: PdfSearchProp
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full z-50 mt-2 flex items-center gap-1 rounded-xl border border-border bg-white p-1.5 shadow-lg">
+        <div className="absolute right-0 top-full z-50 mt-2 flex items-center gap-1 rounded-xl border border-border bg-white p-1.5 shadow-lg dark:bg-surface-muted">
           <input
             ref={inputRef}
             type="text"
@@ -117,6 +121,7 @@ export function PdfSearch({ blocks, onMatchFound, onQueryChange }: PdfSearchProp
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search..."
+            aria-label="Search in document"
             className="w-40 rounded-lg border-0 bg-surface-muted px-3 py-1.5 text-sm text-foreground placeholder:text-muted outline-none focus:ring-2 focus:ring-accent/30"
           />
           {query && (

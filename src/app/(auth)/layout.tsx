@@ -1,4 +1,3 @@
-import { AuthProvider } from "@/components/auth/AuthProvider";
 import { FileText } from "lucide-react";
 
 export default function AuthLayout({
@@ -8,7 +7,7 @@ export default function AuthLayout({
 }) {
   return (
     <div
-      className="flex min-h-screen items-center justify-center bg-accent-light px-4 py-12 pt-[calc(3rem+env(safe-area-inset-top,0px))] pb-[calc(3rem+env(safe-area-inset-bottom,0px))]"
+      className="flex min-h-screen items-center justify-center bg-accent-light px-4 py-12 pt-[calc(3rem+env(safe-area-inset-top,0px))] pb-[calc(3rem+env(safe-area-inset-bottom,0px))] dark:bg-background"
       style={{
         backgroundImage:
           "radial-gradient(circle at 1px 1px, rgba(99,102,241,0.08) 1px, transparent 0)",
@@ -24,7 +23,7 @@ export default function AuthLayout({
             shooma
           </span>
         </div>
-        <div className="rounded-2xl border border-border bg-white p-8 shadow-xl shadow-accent/5">
+        <div className="rounded-2xl border border-border bg-white p-8 shadow-xl shadow-accent/5 dark:bg-surface-muted">
           {children}
         </div>
       </div>

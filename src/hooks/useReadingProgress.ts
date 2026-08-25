@@ -14,7 +14,10 @@ export function useReadingProgress(pdfId: string) {
   const getProgress = useCallback((): ReadingProgress | null => {
     try {
       const data = localStorage.getItem(`${STORAGE_KEY}:${pdfId}`);
-      return data ? JSON.parse(data) : null;
+      if (!data) return null;
+      const parsed = JSON.parse(data);
+      if (typeof parsed?.page !== 'number') return null;
+      return parsed;
     } catch {
       return null;
     }
@@ -30,7 +33,11 @@ export function useReadingProgress(pdfId: string) {
   }, [pdfId]);
 
   const clearProgress = useCallback(() => {
-    localStorage.removeItem(`${STORAGE_KEY}:${pdfId}`);
+    try {
+      localStorage.removeItem(`${STORAGE_KEY}:${pdfId}`);
+    } catch {
+      // Ignore
+    }
   }, [pdfId]);
 
   return { getProgress, saveProgress, clearProgress };

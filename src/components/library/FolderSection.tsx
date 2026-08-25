@@ -44,11 +44,13 @@ export function FolderSection({
   onDeletePdf,
 }: FolderSectionProps) {
   return (
-    <div className="group overflow-hidden rounded-xl border border-border bg-white transition-all duration-200">
+    <div className="group overflow-hidden rounded-xl border border-border bg-white transition-all duration-200 dark:bg-surface-muted">
       <div className="flex items-center px-3 py-3 sm:px-4 sm:py-3.5">
         <button
           onClick={() => onToggle(folder.id)}
-          className="flex min-w-0 flex-1 items-center gap-2.5 text-left sm:gap-3"
+          aria-expanded={expanded}
+          aria-label={`${expanded ? 'Collapse' : 'Expand'} folder ${folder.name}, ${totalPdfCount} PDFs`}
+          className="flex min-w-0 flex-1 items-center gap-2.5 text-left sm:gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:rounded-lg"
         >
           <div className={cn(
             'flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200',
@@ -73,7 +75,7 @@ export function FolderSection({
         {!selectMode && (
           <button
             onClick={() => onDelete(folder.id)}
-            className="ml-1 flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-faint opacity-60 transition-all duration-150 hover:bg-red-50 hover:text-red-500 hover:opacity-100 active:scale-95 sm:ml-2"
+            className="ml-1 flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-faint transition-all duration-150 hover:bg-red-50 hover:text-red-500 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:ml-2 dark:hover:bg-red-900/20"
             aria-label={`Delete folder ${folder.name}`}
           >
             <Trash2 className="size-4" strokeWidth={1.5} />

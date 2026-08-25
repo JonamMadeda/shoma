@@ -92,8 +92,9 @@ export function PdfViewer({ data, pdfId, onPageChange, onScrollDirection }: PdfV
         textCacheRef.current.clear();
         setRenderVersion((version) => version + 1);
       }
-    }).catch(() => {
+    }).catch((err) => {
       if (!cancelled) {
+        console.error('Failed to load PDF:', err);
         setPdf(null);
         setPageCount(0);
       }
@@ -280,6 +281,7 @@ export function PdfViewer({ data, pdfId, onPageChange, onScrollDirection }: PdfV
 
   const getTouchDist = (touches: React.TouchList) => {
     const t = touches as unknown as TouchList;
+    if (t.length < 2) return 0;
     const dx = t[0].clientX - t[1].clientX;
     const dy = t[0].clientY - t[1].clientY;
     return Math.sqrt(dx * dx + dy * dy);
@@ -294,6 +296,7 @@ export function PdfViewer({ data, pdfId, onPageChange, onScrollDirection }: PdfV
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2 && touchRef.current) {
       const newDist = getTouchDist(e.touches);
+      if (newDist === 0) return;
       const ratio = newDist / touchRef.current.dist;
       const newZoom = Math.max(50, Math.min(300, Math.round(touchRef.current.zoom * ratio)));
       setZoomMode('custom');
@@ -408,7 +411,7 @@ export function PdfViewer({ data, pdfId, onPageChange, onScrollDirection }: PdfV
     >
       <div
         className={cn(
-          'flex h-11 shrink-0 items-center justify-center gap-1 border-b border-border bg-white px-2 py-1.5 transition-all duration-300 sm:gap-2',
+          'flex h-11 shrink-0 items-center justify-center gap-1 border-b border-border bg-white px-2 py-1.5 transition-all duration-300 dark:bg-surface-muted sm:gap-2',
           viewMenuOpen ? 'overflow-visible' : 'overflow-hidden',
           !toolbarVisible && 'pointer-events-none h-0 border-transparent py-0 opacity-0'
         )}
@@ -443,12 +446,12 @@ export function PdfViewer({ data, pdfId, onPageChange, onScrollDirection }: PdfV
         </button>
         <div className="mx-1 h-4 w-px bg-border" />
         <form onSubmit={(event) => { event.preventDefault(); handlePageJump(); }} className="flex items-center gap-1 text-xs tabular-nums text-muted">
-          <input value={pageInput} onChange={(event) => setPageInput(event.target.value)} onBlur={handlePageJump} inputMode="numeric" aria-label="Go to page" className="w-7 rounded border border-border bg-white px-1 py-0.5 text-center text-xs text-foreground outline-none focus:ring-2 focus:ring-accent/30" />
+          <input value={pageInput} onChange={(event) => setPageInput(event.target.value)} onBlur={handlePageJump} inputMode="numeric" aria-label="Go to page" className="w-7 rounded border border-border bg-white px-1 py-0.5 text-center text-xs text-foreground outline-none focus:ring-2 focus:ring-accent/30 dark:bg-surface-muted" />
           <span>/ {pageCount}</span>
         </form>
-        <div ref={viewMenuRef} className="relative sm:hidden"><button onClick={() => setViewMenuOpen((open) => !open)} className="flex size-8 items-center justify-center rounded-lg text-muted hover:bg-surface-muted" aria-label="PDF view options"><MoreHorizontal className="size-4" /></button>{viewMenuOpen && <div className="absolute right-0 top-full z-50 mt-2 w-44 rounded-xl border border-border bg-white p-1.5 shadow-xl"><button onClick={() => { handleFitWidth(); setViewMenuOpen(false); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-muted"><Maximize2 className="size-4" />Fit width</button><button onClick={() => { handleFitPage(); setViewMenuOpen(false); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-muted"><ChevronsUpDown className="size-4" />Fit page</button><button onClick={() => { handleRotate(); setViewMenuOpen(false); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-muted"><RotateCw className="size-4" />Rotate</button></div>}</div>
+        <div ref={viewMenuRef} className="relative sm:hidden"><button onClick={() => setViewMenuOpen((open) => !open)} className="flex size-8 items-center justify-center rounded-lg text-muted hover:bg-surface-muted" aria-label="PDF view options" aria-expanded={viewMenuOpen}><MoreHorizontal className="size-4" /></button>{viewMenuOpen && <div className="absolute right-0 top-full z-50 mt-2 w-44 rounded-xl border border-border bg-white p-1.5 shadow-xl dark:bg-surface-muted"><button onClick={() => { handleFitWidth(); setViewMenuOpen(false); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-muted"><Maximize2 className="size-4" />Fit width</button><button onClick={() => { handleFitPage(); setViewMenuOpen(false); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-muted"><ChevronsUpDown className="size-4" />Fit page</button><button onClick={() => { handleRotate(); setViewMenuOpen(false); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-muted"><RotateCw className="size-4" />Rotate</button></div>}</div>
       </div>
-      {searchOpen && <div className="absolute right-3 top-12 z-40 flex items-center gap-1 rounded-xl border border-border bg-white p-2 shadow-lg"><input autoFocus value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} onKeyDown={(event) => {
+      {searchOpen && <div className="absolute right-3 top-12 z-40 flex items-center gap-1 rounded-xl border border-border bg-white p-2 shadow-lg dark:bg-surface-muted"><input autoFocus value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} aria-label="Search PDF" onKeyDown={(event) => {
         if (event.key === 'Enter') {
           event.preventDefault();
           if (searchMatches.length) handlePageSelect(searchMatches[activeMatch] ?? searchMatches[0]);
@@ -465,9 +468,9 @@ export function PdfViewer({ data, pdfId, onPageChange, onScrollDirection }: PdfV
             <div
               key={pageNum}
               ref={(el) => { if (el) pageRefs.current.set(pageNum, el); }}
-              className="relative min-h-[420px] bg-white shadow-lg"
+              className="relative min-h-[420px] bg-white shadow-lg dark:bg-gray-900"
             >
-              <canvas id={`pdf-page-${pageNum}`} className="block" />
+              <canvas id={`pdf-page-${pageNum}`} aria-label={`Page ${pageNum}`} className="block" />
               <div className="absolute bottom-2 right-2 rounded bg-black/60 px-2 py-0.5 text-[10px] text-white">
                 {pageNum}
               </div>
