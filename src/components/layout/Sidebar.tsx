@@ -40,12 +40,7 @@ export function Sidebar() {
               : 'text-muted hover:bg-surface-muted hover:text-foreground'
           )}
         >
-          <span
-            className={cn(
-              'absolute inset-y-0 left-0 w-1 rounded-r-full bg-white transition-opacity duration-200',
-              pathname === '/' ? 'opacity-100' : 'opacity-0'
-            )}
-          />
+
           <Library className="size-4" strokeWidth={1.5} />
           Library
         </Link>
@@ -59,12 +54,7 @@ export function Sidebar() {
               : 'text-muted hover:bg-surface-muted hover:text-foreground'
           )}
         >
-          <span
-            className={cn(
-              'absolute inset-y-0 left-0 w-1 rounded-r-full bg-white transition-opacity duration-200',
-              pathname === '/upload' ? 'opacity-100' : 'opacity-0'
-            )}
-          />
+
           <Upload className="size-4" strokeWidth={1.5} />
           Upload
         </Link>
